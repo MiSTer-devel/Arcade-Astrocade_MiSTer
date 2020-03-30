@@ -1,0 +1,28 @@
+<misterromdescription>
+	<name>Seawolf II</name>
+	<mameversion>0126</mameversion>
+	<mratimestamp>202001070000</mratimestamp>
+	<year>1983</year>
+	<manufacturer>Bally</manufacturer>
+	<category>Sea</category>
+	<rbf>astrocade</rbf>
+	<switches default="00,00,00,C1">
+		<dip bits="00,01" name="Language" ids="French,German,English" values="3,2,0"/>
+		<dip bits="24"    name="Credit" ids="2 Coins,1 Coin"/>
+		<dip bits="25,26" name="Time" ids="70,60,50,40"/>
+		<dip bits="27"    name="2 Player game" ids="1 Credit,2 Credits"/>
+		<dip bits="28,29" name="Extended Play" ids="None,5000,6000,7000"/>
+		<dip bits="30"    name="Monitor" ids="Mono,Colour"/>
+		<dip bits="31"    name="Test mode" ids="On,Off"/>
+		<dip bits="02"    name="P2 Scope" ids="Off,On"/>
+	</switches>
+	<rom index="1">
+		<part>02</part>
+	</rom>  
+	<rom index="0" zip="seawolf2.zip" md5="a5aca3599282b5e1aa85e235ff713f18" type="nonmerged">
+		<part name="sw2x1.bin"/>
+		<part name="sw2x2.bin"/>
+		<part name="sw2x3.bin"/>
+		<part name="sw2x4.bin"/>
+	</rom>
+</misterromdescription>

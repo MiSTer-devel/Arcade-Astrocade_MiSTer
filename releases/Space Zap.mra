@@ -1,0 +1,23 @@
+<misterromdescription>
+	<name>Space Zap</name>
+	<mameversion>0126</mameversion>
+	<mratimestamp>202001070000</mratimestamp>
+	<year>1983</year>
+	<manufacturer>Bally</manufacturer>
+	<category>Space</category>
+	<rbf>astrocade</rbf>
+	<switches default="00,00,03,FF">
+		<dip bits="16"    name="Cabinet" ids="Cocktail,Upright"/>
+		<dip bits="17"    name="Service" ids="On,Off"/>
+		<dip bits="25,26" name="Coinage" ids="1c/5cr,1c/3cr,2c/1cr,1c/1cr"/>
+	</switches>
+	<rom index="1">
+		<part>03</part>
+	</rom>  
+	<rom index="0" zip="spacezap.zip" md5="17d6d5dc739097980aa24a7075ea0c79" type="nonmerged">
+		<part name="0662.01"/>
+		<part name="0663.xx"/>
+		<part name="0664.xx"/>
+		<part name="0665.xx"/>
+	</rom>
+</misterromdescription>

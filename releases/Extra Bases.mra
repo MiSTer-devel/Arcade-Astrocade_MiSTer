@@ -1,0 +1,23 @@
+<misterromdescription>
+	<name>Seawolf II</name>
+	<mameversion>0126</mameversion>
+	<mratimestamp>202001070000</mratimestamp>
+	<year>1983</year>
+	<manufacturer>Bally</manufacturer>
+	<category>Baseball</category>
+	<rbf>astrocade</rbf>
+	<switches default="00,00,00">
+		<dip bits="00"    name="Cabinet" ids="Upright,Cocktail"/>
+		<dip bits="01"    name="Monitor" ids="Colour,Mono"/>
+		<dip bits="16"    name="2 Player game" ids="2 Credits,1 Credit"/>
+	</switches>
+	<rom index="1">
+		<part>01</part>
+	</rom>  
+	<rom index="0" zip="ebases.zip" md5="ce95f66a08a5d707c20edbd2c391b6f9" type="nonmerged">
+		<part name="m761a"/>
+		<part name="m761b"/>
+		<part name="m761c"/>
+		<part name="m761d"/>
+	</rom>
+</misterromdescription>

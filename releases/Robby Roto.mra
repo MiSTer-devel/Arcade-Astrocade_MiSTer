@@ -1,0 +1,31 @@
+<misterromdescription>
+	<name>Robby Roto</name>
+	<mameversion>0126</mameversion>
+	<mratimestamp>202003130000</mratimestamp>
+	<year>1983</year>
+	<manufacturer>Bally</manufacturer>
+	<category>Digging</category>
+	<rbf>astrocade</rbf>
+	<switches default="00,00,00,8F">
+		<dip bits="24"    name="Use NVRAM" ids="No,Yes"/>
+		<dip bits="25"    name="Use Settings" ids="Reset,Yes"/>
+		<dip bits="26"    name="Freeplay" ids="On,Off"/>
+		<dip bits="27"    name="Cabinet" ids="Cocktail,Upright"/>
+		<dip bits="31"    name="Demo sound" ids="Off,On"/>
+	</switches>
+	<rom index="1">
+		<part>06</part>
+	</rom>  
+	<rom index="0" zip="robby.zip" md5="cfca14dd263106bf552e376d9b91b95a" type="nonmerged">
+		<part name="rotox1.bin"/>
+		<part name="rotox2.bin"/>
+		<part name="rotox3.bin"/>
+		<part name="rotox4.bin"/>
+		<part name="rotox5.bin"/>
+		<part name="rotox6.bin"/>
+		<part name="rotox7.bin"/>
+		<part name="rotox8.bin"/>
+		<part name="rotox9.bin"/>
+		<part name="rotox10.bin"/>
+	</rom>
+</misterromdescription>
