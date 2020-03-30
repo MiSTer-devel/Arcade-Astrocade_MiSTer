@@ -1,10 +1,11 @@
 <misterromdescription>
-	<name>Seawolf II</name>
-	<mameversion>0126</mameversion>
-	<mratimestamp>202001070000</mratimestamp>
-	<year>1983</year>
-	<manufacturer>Bally</manufacturer>
-	<category>Baseball</category>
+	<name>Extra Bases</name>
+	<mameversion>0219</mameversion>
+	<setname>ebases</setname>
+	<mratimestamp>20200330175333</mratimestamp>
+	<year>1980</year>
+	<manufacturer>Dave Nutting Associates / Midway</manufacturer>
+	<category>Sports / Baseball</category>
 	<rbf>astrocade</rbf>
 	<switches default="00,00,00">
 		<dip bits="00"    name="Cabinet" ids="Upright,Cocktail"/>
@@ -13,11 +14,11 @@
 	</switches>
 	<rom index="1">
 		<part>01</part>
-	</rom>  
-	<rom index="0" zip="ebases.zip" md5="ce95f66a08a5d707c20edbd2c391b6f9" type="nonmerged">
-		<part name="m761a"/>
-		<part name="m761b"/>
-		<part name="m761c"/>
-		<part name="m761d"/>
+	</rom>
+	<rom index="0" zip="ebases.zip" md5="ce95f66a08a5d707c20edbd2c391b6f9">
+		<part crc="34422147" name="m761a"/>
+		<part crc="4f28dfd6" name="m761b"/>
+		<part crc="bff6c97e" name="m761c"/>
+		<part crc="5173781a" name="m761d"/>
 	</rom>
 </misterromdescription>

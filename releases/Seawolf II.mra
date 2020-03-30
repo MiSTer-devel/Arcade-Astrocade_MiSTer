@@ -1,10 +1,11 @@
 <misterromdescription>
-	<name>Seawolf II</name>
-	<mameversion>0126</mameversion>
-	<mratimestamp>202001070000</mratimestamp>
-	<year>1983</year>
-	<manufacturer>Bally</manufacturer>
-	<category>Sea</category>
+	<name>Sea Wolf II</name>
+	<mameversion>0219</mameversion>
+	<setname>seawolf2</setname>
+	<mratimestamp>20200330175758</mratimestamp>
+	<year>1978</year>
+	<manufacturer>Dave Nutting Associates / Midway</manufacturer>
+	<category>Army / Submarine</category>
 	<rbf>astrocade</rbf>
 	<switches default="00,00,00,C1">
 		<dip bits="00,01" name="Language" ids="French,German,English" values="3,2,0"/>
@@ -18,11 +19,11 @@
 	</switches>
 	<rom index="1">
 		<part>02</part>
-	</rom>  
-	<rom index="0" zip="seawolf2.zip" md5="a5aca3599282b5e1aa85e235ff713f18" type="nonmerged">
-		<part name="sw2x1.bin"/>
-		<part name="sw2x2.bin"/>
-		<part name="sw2x3.bin"/>
-		<part name="sw2x4.bin"/>
+	</rom>
+	<rom index="0" zip="seawolf2.zip" md5="a5aca3599282b5e1aa85e235ff713f18">
+		<part crc="ad0103f6" name="sw2x1.bin"/>
+		<part crc="e0430f0a" name="sw2x2.bin"/>
+		<part crc="05ad1619" name="sw2x3.bin"/>
+		<part crc="1a1a14a2" name="sw2x4.bin"/>
 	</rom>
 </misterromdescription>

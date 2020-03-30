@@ -1,9 +1,10 @@
 <misterromdescription>
 	<name>Wizard of Wor</name>
-	<mameversion>0126</mameversion>
-	<mratimestamp>202003130000</mratimestamp>
-	<year>1983</year>
-	<manufacturer>Bally</manufacturer>
+	<mameversion>0219</mameversion>
+	<setname>wow</setname>
+	<mratimestamp>20200330180921</mratimestamp>
+	<year>1980</year>
+	<manufacturer>Dave Nutting Associates / Midway</manufacturer>
 	<category>Maze</category>
 	<rbf>astrocade</rbf>
 	<switches default="00,00,03,FF">
@@ -11,24 +12,24 @@
 		<dip bits="1"     name="Controls P2" ids="Digital,Analogue"/>
 		<dip bits="16"    name="Cabinet" ids="Cocktail,Upright"/>
 		<dip bits="17"    name="Service" ids="On,Off"/>
-                <dip bits="18"    name="Flip Screen" ids="Yes,No"/>
+		<dip bits="18"    name="Flip Screen" ids="Yes,No"/>
 		<dip bits="25,26" name="Coinage" ids="1c/5cr,1c/3cr,2c/1cr,1c/1cr"/>
 		<dip bits="27"    name="Language" ids="Foreign,English"/>
 		<dip bits="28"    name="lives"   ids="3-1cr/7-2cr,2-1cr/5-2cr"/>
-                <dip bits="29"    name="Bonus"   ids="4th level,3rd level"/>
-                <dip bits="30"    name="Freeplay" ids="On,Off"/>
-                <dip bits="31"    name="Demo Sound" ids="When touched,Always on"/>
+		<dip bits="29"    name="Bonus"   ids="4th level,3rd level"/>
+		<dip bits="30"    name="Freeplay" ids="On,Off"/>
+		<dip bits="31"    name="Demo Sound" ids="When touched,Always on"/>
 	</switches>
 	<rom index="1">
 		<part>05</part>
-	</rom>  
-	<rom index="0" zip="wow.zip" md5="c73cdd11969706f744c2b4dac2c54cb2" type="nonmerged">
-		<part name="wow.x1"/>
-		<part name="wow.x2"/>
-		<part name="wow.x3"/>
-		<part name="wow.x4"/>
-		<part name="wow.x5"/>
-		<part name="wow.x6"/>
-		<part name="wow.x7"/>
+	</rom>
+	<rom index="0" zip="wow.zip" md5="c73cdd11969706f744c2b4dac2c54cb2">
+		<part crc="c1295786" name="wow.x1"/>
+		<part crc="9be93215" name="wow.x2"/>
+		<part crc="75e5a22e" name="wow.x3"/>
+		<part crc="ef28eb84" name="wow.x4"/>
+		<part crc="16912c2b" name="wow.x5"/>
+		<part crc="35797f82" name="wow.x6"/>
+		<part crc="ce404305" name="wow.x7"/>
 	</rom>
 </misterromdescription>
