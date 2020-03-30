@@ -1,10 +1,11 @@
 <misterromdescription>
-	<name>Robby Roto</name>
-	<mameversion>0126</mameversion>
-	<mratimestamp>202003130000</mratimestamp>
-	<year>1983</year>
-	<manufacturer>Bally</manufacturer>
-	<category>Digging</category>
+	<name>The Adventures of Robby Roto!</name>
+	<mameversion>0219</mameversion>
+	<setname>robby</setname>
+	<mratimestamp>20200330175514</mratimestamp>
+	<year>1981</year>
+	<manufacturer>Dave Nutting Associates / Bally Midway</manufacturer>
+	<category>Maze / Digging</category>
 	<rbf>astrocade</rbf>
 	<switches default="00,00,00,8F">
 		<dip bits="24"    name="Use NVRAM" ids="No,Yes"/>
@@ -15,17 +16,17 @@
 	</switches>
 	<rom index="1">
 		<part>06</part>
-	</rom>  
-	<rom index="0" zip="robby.zip" md5="cfca14dd263106bf552e376d9b91b95a" type="nonmerged">
-		<part name="rotox1.bin"/>
-		<part name="rotox2.bin"/>
-		<part name="rotox3.bin"/>
-		<part name="rotox4.bin"/>
-		<part name="rotox5.bin"/>
-		<part name="rotox6.bin"/>
-		<part name="rotox7.bin"/>
-		<part name="rotox8.bin"/>
-		<part name="rotox9.bin"/>
-		<part name="rotox10.bin"/>
+	</rom>
+	<rom index="0" zip="robby.zip" md5="cfca14dd263106bf552e376d9b91b95a">
+		<part crc="a431b85a" name="rotox1.bin"/>
+		<part crc="33cdda83" name="rotox2.bin"/>
+		<part crc="dbf97491" name="rotox3.bin"/>
+		<part crc="a3b90ac8" name="rotox4.bin"/>
+		<part crc="46ae8a94" name="rotox5.bin"/>
+		<part crc="7916b730" name="rotox6.bin"/>
+		<part crc="276dc4a5" name="rotox7.bin"/>
+		<part crc="1ef13457" name="rotox8.bin"/>
+		<part crc="370352bf" name="rotox9.bin"/>
+		<part crc="e762cbda" name="rotox10.bin"/>
 	</rom>
 </misterromdescription>

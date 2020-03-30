@@ -1,10 +1,12 @@
 <misterromdescription>
 	<name>Space Zap</name>
-	<mameversion>0126</mameversion>
-	<mratimestamp>202001070000</mratimestamp>
-	<year>1983</year>
-	<manufacturer>Bally</manufacturer>
-	<category>Space</category>
+	<mameversion>0219</mameversion>
+	<setname>spacezap</setname>
+	<mratimestamp>20200330181259</mratimestamp>
+	<year>1980</year>
+	<manufacturer>Midway</manufacturer>
+	<category>Space / Base Defense</category>
+	<category>Space / Shooter</category>
 	<rbf>astrocade</rbf>
 	<switches default="00,00,03,FF">
 		<dip bits="16"    name="Cabinet" ids="Cocktail,Upright"/>
@@ -13,11 +15,11 @@
 	</switches>
 	<rom index="1">
 		<part>03</part>
-	</rom>  
-	<rom index="0" zip="spacezap.zip" md5="17d6d5dc739097980aa24a7075ea0c79" type="nonmerged">
-		<part name="0662.01"/>
-		<part name="0663.xx"/>
-		<part name="0664.xx"/>
-		<part name="0665.xx"/>
+	</rom>
+	<rom index="0" zip="spacezap.zip" md5="17d6d5dc739097980aa24a7075ea0c79">
+		<part crc="a92de312" name="0662.01"/>
+		<part crc="4836ebf1" name="0663.xx"/>
+		<part crc="d8193a80" name="0664.xx"/>
+		<part crc="3784228d" name="0665.xx"/>
 	</rom>
 </misterromdescription>
