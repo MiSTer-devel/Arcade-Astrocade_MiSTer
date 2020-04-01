@@ -218,36 +218,44 @@ begin
     end if;
     DOUTX <= mux_h;
 
-	 -- Pattern board access to memory
+  end process;
+	 
+
+  -- Pattern board access to memory
+  
+  p_mux2 : process(pout_int_h, pout_int_l, PAT_ADDR)
+    variable pmux_h : std_logic_vector(7 downto 0);
+    variable pmux_l : std_logic_vector(7 downto 0);
+  begin
 	 
     case PAT_ADDR(15 downto 12) is
-      when x"0" => mux_h := pout_int_h(0); mux_l := pout_int_l(0);
-      when x"1" => mux_h := pout_int_h(1); mux_l := pout_int_l(1);
-      when x"2" => mux_h := pout_int_h(2); mux_l := pout_int_l(2);
-      when x"3" => mux_h := pout_int_h(3); mux_l := pout_int_l(3);
+      when x"0" => pmux_h := pout_int_h(0); pmux_l := pout_int_l(0);
+      when x"1" => pmux_h := pout_int_h(1); pmux_l := pout_int_l(1);
+      when x"2" => pmux_h := pout_int_h(2); pmux_l := pout_int_l(2);
+      when x"3" => pmux_h := pout_int_h(3); pmux_l := pout_int_l(3);
       --
-      when x"4" => mux_h := pout_int_h(0); mux_l := pout_int_l(0);
-      when x"5" => mux_h := pout_int_h(1); mux_l := pout_int_l(1);
-      when x"6" => mux_h := pout_int_h(2); mux_l := pout_int_l(2);
-      when x"7" => mux_h := pout_int_h(3); mux_l := pout_int_l(3);
+      when x"4" => pmux_h := pout_int_h(0); pmux_l := pout_int_l(0);
+      when x"5" => pmux_h := pout_int_h(1); pmux_l := pout_int_l(1);
+      when x"6" => pmux_h := pout_int_h(2); pmux_l := pout_int_l(2);
+      when x"7" => pmux_h := pout_int_h(3); pmux_l := pout_int_l(3);
       --
-      when x"8" => mux_h := pout_int_h(4); mux_l := pout_int_l(4);
-      when x"9" => mux_h := pout_int_h(5); mux_l := pout_int_l(5);
-      when x"A" => mux_h := pout_int_h(6); mux_l := pout_int_l(6);
-      when x"B" => mux_h := pout_int_h(7); mux_l := pout_int_l(7);
+      when x"8" => pmux_h := pout_int_h(4); pmux_l := pout_int_l(4);
+      when x"9" => pmux_h := pout_int_h(5); pmux_l := pout_int_l(5);
+      when x"A" => pmux_h := pout_int_h(6); pmux_l := pout_int_l(6);
+      when x"B" => pmux_h := pout_int_h(7); pmux_l := pout_int_l(7);
       --
-      when x"C" => mux_h := pout_int_h(4); mux_l := pout_int_l(4);
-      when x"D" => mux_h := pout_int_h(5); mux_l := pout_int_l(5);
-      when x"E" => mux_h := pout_int_h(6); mux_l := pout_int_l(6);
-      when x"F" => mux_h := pout_int_h(7); mux_l := pout_int_l(7);
+      when x"C" => pmux_h := pout_int_h(4); pmux_l := pout_int_l(4);
+      when x"D" => pmux_h := pout_int_h(5); pmux_l := pout_int_l(5);
+      when x"E" => pmux_h := pout_int_h(6); pmux_l := pout_int_l(6);
+      when x"F" => pmux_h := pout_int_h(7); pmux_l := pout_int_l(7);
 		--
       when others => null;
     end case;
 
     if (PAT_ADDR(0) = '0') then
-      PAT_DATA <= mux_l;
+      PAT_DATA <= pmux_l;
     else
-      PAT_DATA <= mux_h;
+      PAT_DATA <= pmux_h;
     end if;
 	 
   end process;
