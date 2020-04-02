@@ -511,7 +511,7 @@ begin
     end if;
   end process;
 
-  p_master_freq_2        : process(vibrato_ena, r_snd, noise_gen)
+  p_master_freq_2        : process(vibrato_ena_2, r_snd_2, noise_gen)
     variable mux : std_logic_vector(7 downto 0);
   begin
     mux := (others => '0'); -- default

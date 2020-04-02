@@ -41,7 +41,7 @@ architecture RTL of BALLY_SPARKLE is
   type array_bool4            is array (0 to 3) of boolean;
 
   signal cs_r                 : std_logic;
-  signal Sparkle_en           : array_bool4 := (others => false);
+  signal Sparkle_en           : array_bool4 := (others => true);
   signal prng1 					: std_logic_vector(16 downto 0) := (others => '0');
   signal prng2 					: std_logic_vector(16 downto 0) := (others => '0');
   
@@ -63,8 +63,8 @@ begin
     wait until rising_edge(CLK);
     if (ENA = '1') then
 		if (I_RESET_L = '0') then
-		  Sparkle_en <= (others => false);
-		end if;      
+		  Sparkle_en <= (others => true);
+		end if;
 		
 		if ((I_RD_L = '0') and (I_IORQ_L = '0') and (I_M1_L = '1') and (cs_r = '1')) then
 		  -- write to sparkle registers in high byte
@@ -117,7 +117,7 @@ begin
 				O_LUMA <= prng2(4) & prng2(12) & prng2(16) & prng2(8);
 			end if;
 		else
-			O_LUMA <= "0111";
+			O_LUMA <= "1111";
 		end if;
 			
 	end process;

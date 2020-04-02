@@ -69,8 +69,6 @@ architecture RTL of BALLY_PATTERN is
   signal u13ff                : std_logic;
   signal curwidth             : std_logic_vector(7 downto 0); 
   signal p_temp					: std_logic_vector(8 downto 0);
-  signal c_source             : std_logic_vector(15 downto 0); 
-  signal c_dest               : std_logic_vector(15 downto 0); 
   signal c_height             : std_logic_vector(7 downto 0); 
   signal d_count              : std_logic_vector(2 downto 0); 
   -- Pattern CPU equivalent
@@ -79,7 +77,6 @@ architecture RTL of BALLY_PATTERN is
   signal p_MR                 : std_logic := '1';
   
   signal cs_w                 : std_logic;
-  signal cs_go                : std_logic;
   
 begin
 
@@ -123,8 +120,6 @@ begin
 										  	   u13ff <= '0';
 										  end if;
 										  curwidth <= p_width;
-										  c_source <= p_source;
-										  c_dest <= p_dest;
 										  c_height <= I_MXD(7 downto 0); -- p_height not ready yet!
 										  -- And get ready to start copy loop
 										  next_state <= Start;
@@ -147,25 +142,14 @@ begin
 					when Source => 
 							-- address is selected between source/dest based on mode.d0
 							if (p_mode(0) = '0') then
-								p_addr <= c_source;
+								p_addr <= p_source;
 							else
-								p_addr <= c_dest;
+								p_addr <= p_dest;
 							end if;
 							p_WR <= '1';
 							p_MR <= '0'; 
 							p_RD <= '0'; -- Read
-							-- d_count <= I_DELAY;
 							next_state <= Source_read; --Source_wait;
-
---					when Source_wait =>
-							-- Delay between set address and data return
---							if (I_WAIT_L='1') then
---								if (d_count = "000") then
---									next_state <= Source_read;
---								else
---									d_count <= d_count - 1;
---								end if;
---							end if;
 
 					when Source_read =>
 							if (I_WAIT_L='1') then
@@ -187,9 +171,9 @@ begin
 							-- Set destination address
 							if (I_WAIT_L='1') then
 								if (p_mode(0) = '1') then
-									p_addr <= c_source;
+									p_addr <= p_source;
 								else
-									p_addr <= c_dest; 
+									p_addr <= p_dest; 
 								end if;
 								p_WR <= '0';
 								next_state <= Destination_wait;
@@ -197,10 +181,10 @@ begin
 
 					when Destination_wait =>
 							-- Debug - single step!	
-							--if ((c_source /= x"0776") or (I_FIRE = '1')) then
+							--if ((p_source /= x"0776") or (I_FIRE = '1')) then
 								p_MR <= '0'; -- set it low
 								-- Calculate this now in case needed in increment routine
-								p_temp(8 downto 0) <= std_logic_vector(unsigned('0' & c_dest(7 downto 0)) + unsigned('0' & p_skip(7 downto 0)));
+								p_temp(8 downto 0) <= std_logic_vector(unsigned('0' & p_dest(7 downto 0)) + unsigned('0' & p_skip(7 downto 0)));
 								next_state <= Increment;
 							--end if;
 
@@ -209,7 +193,7 @@ begin
 							-- however, if mode.d3 is set and we're on the last byte of a row, the increment is suppressed
 							if ((u13ff='1') and (p_mode(2)='1')) then
 								if ((curwidth /= "00000000") or (p_mode(3)='0')) then
-									c_source <= c_source + 1;
+									p_source <= p_source + 1;
 								end if;
 							end if;
 							
@@ -221,24 +205,24 @@ begin
 							-- destination increment is suppressed for the last byte in a row 
 							if (curwidth = "00000000") then
 								-- at the end of each row, the skip value is added to the dest value 
-								-- p_temp(8 downto 0) <= std_logic_vector(unsigned('0' & c_dest(7 downto 0)) + unsigned('0' & p_skip(7 downto 0)));
-								c_dest(7 downto 0) <= p_temp(7 downto 0);
+								-- p_temp(8 downto 0) <= std_logic_vector(unsigned('0' & p_dest(7 downto 0)) + unsigned('0' & p_skip(7 downto 0)));
+								p_dest(7 downto 0) <= p_temp(7 downto 0);
 								-- carry behavior into the top byte is controlled by mode.d4 
 								if p_mode(4)='0' then
 									if (p_temp(8)='1') then
-										c_dest(15 downto 8) <= c_dest(15 downto 8) + 1;
+										p_dest(15 downto 8) <= p_dest(15 downto 8) + 1;
 									end if;
 								else
 									if (p_temp(8)='0') then
-										c_dest(15 downto 8) <= c_dest(15 downto 8) - 1;
+										p_dest(15 downto 8) <= p_dest(15 downto 8) - 1;
 									end if;
 								end if;
 							else
 								-- if mode.d5 is 1, we increment 
 								if p_mode(5)='1' then
-									c_dest <= c_dest + 1;
+									p_dest <= p_dest + 1;
 								else
-									c_dest <= c_dest - 1;
+									p_dest <= p_dest - 1;
 								end if;
 							end if;
 							
@@ -252,7 +236,7 @@ begin
 
 						when Repeat => 
 							-- Debug - single step!	
-							--if ((c_source /= x"0776") or (I_FIRE = '0')) then
+							--if ((p_source /= x"0776") or (I_FIRE = '0')) then
 								if ((c_height="00000000") and (curwidth="00000000")) then 
 										-- Finished!
 										p_RD <= '1';

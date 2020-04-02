@@ -559,29 +559,31 @@ begin
 			-- Test Gorf colours actually being set to something!
 			-- O_VIDEO_R <= Serial(1) & Serial(1) & Serial(0) & Serial(0);
 		else
-			 -- May need specific if colour is actually black or white
-			 case luma_t(3 downto 2) is
-			 
-				 when "11" => -- White
-								  O_VIDEO_R <= "1111";
-								  O_VIDEO_G <= "1111";
-								  O_VIDEO_B <= "1111";
-				 when "10" => -- B.Grey
-								  O_VIDEO_R <= "1011";
-								  O_VIDEO_G <= "1011";
-								  O_VIDEO_B <= "1011";
-				 when others =>
-								  if luma_t(3 downto 0) = "0000" then
-								     -- Black
-									  O_VIDEO_R <= "0000";
-									  O_VIDEO_G <= "0000";
-									  O_VIDEO_B <= "0000";
-								  else
-									  O_VIDEO_R <= (video_r and (luma_t(2 downto 0) & "1"));
-									  O_VIDEO_G <= (video_g and (luma_t(2 downto 0) & "1"));
-									  O_VIDEO_B <= (video_b and (luma_t(2 downto 0) & "1"));
-								  end if;
-			end case;
+			  O_VIDEO_R <= (video_r and luma_t);
+			  O_VIDEO_G <= (video_g and luma_t);
+			  O_VIDEO_B <= (video_b and luma_t);
+--			 case luma_t(3 downto 2) is
+--			 
+--				 when "11" => -- White
+--								  O_VIDEO_R <= "1111";
+--								  O_VIDEO_G <= "1111";
+--								  O_VIDEO_B <= "1111";
+--				 when "10" => -- B.Grey
+--								  O_VIDEO_R <= "1011";
+--								  O_VIDEO_G <= "1011";
+--								  O_VIDEO_B <= "1011";
+--				 when others =>
+--								  if luma_t(3 downto 0) = "0000" then
+--								     -- Black
+--									  O_VIDEO_R <= "0000";
+--									  O_VIDEO_G <= "0000";
+--									  O_VIDEO_B <= "0000";
+--								  else
+--									  O_VIDEO_R <= (video_r and (luma_t(2 downto 0) & "1"));
+--									  O_VIDEO_G <= (video_g and (luma_t(2 downto 0) & "1"));
+--									  O_VIDEO_B <= (video_b and (luma_t(2 downto 0) & "1"));
+--								  end if;
+--			end case;
 		end if;
       O_FPSYNC  <= fpsync;
 		luma_t <= luma; -- delay 1 cycle

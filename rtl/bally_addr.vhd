@@ -320,7 +320,7 @@ begin
     end if;
   end process;
 
-  p_mxd_oe               : process(vector_read, r_int_fb)
+  p_mxd_oe               : process(vector_read, r_int_fb_current)
   begin
     O_MXD <= x"00";
     O_MXD_OE_L <= '1';
