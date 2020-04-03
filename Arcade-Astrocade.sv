@@ -52,6 +52,10 @@
 // SC01
 //===========================================================================
 
+
+// Uncomment next line for debug overlay
+//`define DEBUG_MODE
+
 module emu
 (
 	//Master input clock
@@ -129,7 +133,12 @@ assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DD
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 
 assign USER_OUT  = '1;
-assign LED_USER  = LED;
+`ifdef DEBUG_MODE
+	assign LED_USER  = LED;
+`else
+	assign LED_USER  = ioctl_download;	
+`endif
+
 assign LED_DISK  = 0;
 assign LED_POWER = 0;
 
@@ -148,7 +157,7 @@ localparam CONF_STR = {
 	"DIP;",
 	"-;",
 	"R0,Reset;",
-	"J1,Fire,Up,Down,Left,Right,Start 1P,Start 2P,Coin;",
+	"J1,Fire 1,Fire 2,Start 1P,Start 2P,Coin;",
 	"V,v",`BUILD_DATE
 };
 
@@ -359,9 +368,9 @@ reg btn_fire1_2=0;
 reg btn_fire2_2=0;
 
 // Combined buttons
-wire B1_S = btn_one_player | btn_start_1 | joystick_0[6];
-wire B2_S = btn_two_players | btn_start_2 | joystick_0[7];
-wire B1_C = btn_coin | btn_coin_1 | joystick_0[8];
+wire B1_S = btn_one_player | btn_start_1 | joystick_0[8];
+wire B2_S = btn_two_players | btn_start_2 | joystick_0[9];
+wire B1_C = btn_coin | btn_coin_1 | joystick_0[10];
 
 wire B1_U = btn_up | joystick_0[3];
 wire B1_D = btn_down | joystick_0[2];
@@ -489,14 +498,19 @@ BALLY bally
 	.I_RESET_L      (~reset), //    : in    std_logic;
 	.ENA            (clk_cpu_en), //    : in    std_logic;
 	.CLK            (clk_sys), //    : in    std_logic
-	
+
+`ifdef DEBUG_MODE
+   .DEBUG_MODE     (1'b1),
 	.O_LED          (LED),
+   .HEX1           (Line1),
+   .HEX2           (Line2),
+`else
+   .DEBUG_MODE     (1'b0),	
+`endif	
 	
 	.DELAY          (3'd0),
-   .HEX1(Line1),
-   .HEX2(Line2),
 	.CONTROL(ct2_sz),
-	.FIRE(B1_F)
+	.FIRE(B1_F)	
 );
 
 ////////////////////////////  MEMORY  ///////////////////////////////////
@@ -576,38 +590,41 @@ always @(posedge CLK_VIDEO) begin
 		end
 		
 		// Overlay (for debugging)
-		if (mod_gorf) begin
-			O_R <= C_R;
-			O_B <= C_B;
-			O_G <= C_G;
-		end
+		`ifdef DEBUG_MODE
+			if (mod_gorf) begin
+				O_R <= C_R;
+				O_B <= C_B;
+				O_G <= C_G;
+			end
+		`endif
 	end
 end
 
 // numeric overlay for debugging
 
-reg [3:0] C_R,C_G,C_B;
-reg [0:159] Line1,Line2;
+`ifdef DEBUG_MODE
+	reg [3:0] C_R,C_G,C_B;
+	reg [0:159] Line1,Line2;
 
-ovo OVERLAY
-(
-    .i_r(R),
-    .i_g(G),
-    .i_b(B),
-    .i_clk(CLK_VIDEO),
-	 
-	 .i_Hcount(HCount),
-	 .i_VCount(MyVCount),
+	ovo OVERLAY
+	(
+		 .i_r(R),
+		 .i_g(G),
+		 .i_b(B),
+		 .i_clk(CLK_VIDEO),
+		 
+		 .i_Hcount(HCount),
+		 .i_VCount(MyVCount),
 
-    .o_r(C_R),
-    .o_g(C_G),
-    .o_b(C_B),
-    .ena(sw[1][4]),
+		 .o_r(C_R),
+		 .o_g(C_G),
+		 .o_b(C_B),
+		 .ena(sw[1][4]),
 
-    .in0(Line1),
-    .in1(Line2)
-);
-
+		 .in0(Line1),
+		 .in1(Line2)
+	);
+`endif
 
 /////////////////
 /// Seawolf 2 ///
