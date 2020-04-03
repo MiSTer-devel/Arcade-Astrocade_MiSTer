@@ -106,10 +106,12 @@ entity BALLY is
     CLK                : in    std_logic;
 	 
 	 -- Debug stuff, used for pausing and displaying things!
-	 DELAY              : in    std_logic_vector(2 downto 0);
+	 DEBUG_MODE         : in boolean;
 	 O_LED              : out   std_logic;
-    HEX1       		  : inout std_logic_vector(159 downto 0);
-    HEX2       		  : inout std_logic_vector(159 downto 0);
+	 HEX1       		  : inout std_logic_vector(159 downto 0);
+	 HEX2       		  : inout std_logic_vector(159 downto 0);
+	 
+	 DELAY              : in    std_logic_vector(2 downto 0);
 	 CONTROL            : in    std_logic_vector(7 downto 0);
 	 FIRE               : in    std_logic
 );
@@ -235,11 +237,11 @@ begin
   cpu_nmi_l   <= '1';
   
   cpu_ena_gated <= ENA and cpu_ena;
-  u_cpu : entity work.T80sed
+  u_cpu : entity work.T80s
           port map (
 				  RESET_n => I_RESET_L,
-              CLK_n   => CLK,
-              CLKEN   => cpu_ena_gated,
+              CLK     => CLK,
+              CEN     => cpu_ena_gated,
               WAIT_n  => cpu_wait_l,
               INT_n   => mux_int,	-- keep high when pattern board running
               NMI_n   => cpu_nmi_l,
@@ -275,7 +277,7 @@ begin
   --
   -- primary addr decode
   --
-  p_mem_decode_comb : process(mux_rfsh_l, mux_rd_l, mux_mr_l, addr_bus, exp_sysen, exp_casen)
+  p_mem_decode_comb : process(mux_rfsh_l, mux_rd_l, mux_mr_l, addr_bus, exp_sysen, exp_casen,I_EXTRA_ROM,I_HIGH_ROM)
     variable decode : std_logic;
   begin
 
@@ -291,40 +293,41 @@ begin
  
 
 	-- Anything wanted in debug out goes here
+	if DEBUG_MODE then
+		-- pattern address debug
+		if (pat_RD_L='0') then
+			-- Read Address
+			HEX1(3 downto 0) <= pat_addr(15 downto 12);
+			HEX1(8 downto 5) <= pat_addr(11 downto 8);
+			HEX1(13 downto 10) <= pat_addr(7 downto 4);
+			HEX1(18 downto 15) <= pat_addr(3 downto 0);
+			HEX1(24 downto 20) <= "10000"; -- Space
+		end if;
+		HEX1(74 downto 70) <= "10000"; -- Space
+		HEX1(78 downto 75) <= state;
+		HEX1(84 downto 80) <= "10000"; -- Space
+		if (pat_WR_L='0') then
+			-- Write Address
+			HEX1(88 downto 85) <= pat_addr(15 downto 12);
+			HEX1(93 downto 90) <= pat_addr(11 downto 8);
+			HEX1(98 downto 95) <= pat_addr(7 downto 4);
+			HEX1(103 downto 100) <= pat_addr(3 downto 0);
+			-- pattern data out
+			HEX1(28 downto 25) <= pat_data_o(7 downto 4);
+			HEX1(33 downto 30) <= pat_data_o(3 downto 0);
+			HEX1(39 downto 35) <= "10000"; -- Space
+		end if;
+		HEX1(109 downto 105) <= "10000"; -- Space
+		HEX1(113 downto 110) <= cpu_addr(15 downto 12);
+		HEX1(118 downto 115) <= cpu_addr(11 downto 8);
+		HEX1(123 downto 120) <= cpu_addr(7 downto 4);
+		HEX1(128 downto 125) <= cpu_addr(3 downto 0);
+		HEX1(134 downto 130) <= "10000"; -- Space
+		HEX1(138 downto 135) <= patram(7 downto 4);
+		HEX1(143 downto 140) <= patram(3 downto 0);
+		HEX1(149 downto 145) <= "10000"; -- Space
+	end if;
 
-	-- pattern address debug
-	if (pat_RD_L='0') then
-		-- Read Address
-		HEX1(3 downto 0) <= pat_addr(15 downto 12);
-		HEX1(8 downto 5) <= pat_addr(11 downto 8);
-		HEX1(13 downto 10) <= pat_addr(7 downto 4);
-		HEX1(18 downto 15) <= pat_addr(3 downto 0);
-		HEX1(24 downto 20) <= "10000"; -- Space
-	end if;
- 	HEX1(74 downto 70) <= "10000"; -- Space
-	HEX1(78 downto 75) <= state;
- 	HEX1(84 downto 80) <= "10000"; -- Space
-	if (pat_WR_L='0') then
-		-- Write Address
-		HEX1(88 downto 85) <= pat_addr(15 downto 12);
-		HEX1(93 downto 90) <= pat_addr(11 downto 8);
-		HEX1(98 downto 95) <= pat_addr(7 downto 4);
-		HEX1(103 downto 100) <= pat_addr(3 downto 0);
-		-- pattern data out
-		HEX1(28 downto 25) <= pat_data_o(7 downto 4);
-		HEX1(33 downto 30) <= pat_data_o(3 downto 0);
-		HEX1(39 downto 35) <= "10000"; -- Space
-	end if;
-	HEX1(109 downto 105) <= "10000"; -- Space
-	HEX1(113 downto 110) <= cpu_addr(15 downto 12);
-	HEX1(118 downto 115) <= cpu_addr(11 downto 8);
-	HEX1(123 downto 120) <= cpu_addr(7 downto 4);
-	HEX1(128 downto 125) <= cpu_addr(3 downto 0);
-	HEX1(134 downto 130) <= "10000"; -- Space
-	HEX1(138 downto 135) <= patram(7 downto 4);
-	HEX1(143 downto 140) <= patram(3 downto 0);
-	HEX1(149 downto 145) <= "10000"; -- Space
-	
     --cas_cs_l <= not (decode and (    cpu_addr(13)) and exp_casen);
   end process;
 
@@ -479,6 +482,7 @@ begin
 
       -- audio
       O_AUDIO_L         => O_AUDIO_L,
+		O_AUDIO_R         => O_AUDIO_R,
 
       -- clks
       I_CPU_ENA         => cpu_ena,

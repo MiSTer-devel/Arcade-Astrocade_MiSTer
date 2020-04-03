@@ -69,7 +69,6 @@ architecture RTL of BALLY_PATTERN is
   signal u13ff                : std_logic;
   signal curwidth             : std_logic_vector(7 downto 0); 
   signal p_temp					: std_logic_vector(8 downto 0);
-  signal c_height             : std_logic_vector(7 downto 0); 
   signal d_count              : std_logic_vector(2 downto 0); 
   -- Pattern CPU equivalent
   signal p_RD					   : std_logic := '1';
@@ -120,7 +119,6 @@ begin
 										  	   u13ff <= '0';
 										  end if;
 										  curwidth <= p_width;
-										  c_height <= I_MXD(7 downto 0); -- p_height not ready yet!
 										  -- And get ready to start copy loop
 										  next_state <= Start;
 				 when others => null;
@@ -237,7 +235,7 @@ begin
 						when Repeat => 
 							-- Debug - single step!	
 							--if ((p_source /= x"0776") or (I_FIRE = '0')) then
-								if ((c_height="00000000") and (curwidth="00000000")) then 
+								if ((p_height="00000000") and (curwidth="00000000")) then 
 										-- Finished!
 										p_RD <= '1';
 										p_WR <= '1';
@@ -250,9 +248,9 @@ begin
 									if (curwidth /= "00000000") then
 										curwidth <= curwidth - 1;
 									else
-										if (c_height /= "00000000") then 
+										if (p_height /= "00000000") then 
 											curwidth <= p_width;
-											c_height <= c_height - 1;
+											p_height <= p_height - 1;
 										end if;
 									end if;
 
