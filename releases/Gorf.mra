@@ -1,0 +1,31 @@
+<misterromdescription>
+	<name>Gorf</name>
+	<mameversion>0219</mameversion>
+	<mratimestamp>202004040000</mratimestamp>
+	<year>1981</year>
+	<manufacturer>Dave Nutting Associates / Bally Midway</manufacturer>
+	<category>Space</category>
+	<rbf>astrocade</rbf>
+	<switches default="00,00,03,FF">
+		<dip bits="16"    name="Cabinet" ids="Cocktail,Upright"/>
+		<dip bits="17"    name="Service" ids="On,Off"/>
+		<dip bits="25,26" name="Coinage" ids="1c/5cr,1c/3cr,2c/1cr,1c/1cr"/>
+                <dip bits="28"    name="Lives"   ids="3,2"/>
+                <dip bits="29"    name="Bonus"   ids="None,Mission 5"/>
+                <dip bits="30"    name="Freeplay" ids="On,Off"/>
+                <dip bits="31"    name="demo sound" ids="Off,On"/>
+	</switches>
+	<rom index="1">
+		<part>04</part>
+	</rom>  
+	<rom index="0" zip="gorf.zip" md5="cf4fe2ecfdc33a1dd4ee9e000a1c7bc2" type="nonmerged">
+		<part crc="5b348321" name="gorf-a.bin"/>
+		<part crc="62d6de77" name="gorf-b.bin"/>
+		<part crc="1d3bc9c9" name="gorf-c.bin"/>
+		<part crc="70046e56" name="gorf-d.bin"/>
+		<part crc="2d456eb5" name="gorf-e.bin"/>
+		<part crc="f7e4e155" name="gorf-f.bin"/>
+		<part crc="4e2bd9b9" name="gorf-g.bin"/>
+		<part crc="fe7b863d" name="gorf-h.bin"/>
+	</rom>
+</misterromdescription>

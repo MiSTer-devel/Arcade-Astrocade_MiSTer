@@ -1055,7 +1055,7 @@ begin
     end if;
   end process;
 
-  p_mxout                : process(mxd_out_ena, mxd_out_intercept, I_MD, r_intercept, mxd_out_LP_V, mxd_out_LP_H)
+  p_mxout                : process(mxd_out_ena, mxd_out_intercept, I_MD, r_intercept, mxd_out_LP_V, mxd_out_LP_H, I_LP_V, I_LP_H)
   begin
     O_MXD <= (others => 'X');
     O_MXD_OE_L <= '1';

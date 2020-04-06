@@ -11,4 +11,3 @@ set_global_assignment -name VHDL_FILE rtl/bally.vhd
 set_global_assignment -name VHDL_FILE rtl/seawolf_gray_binary.vhd
 set_global_assignment -name VHDL_FILE rtl/ebases_control.vhd
 set_global_assignment -name VHDL_FILE rtl/wow_control.vhd
-set_global_assignment -name VHDL_FILE rtl/OVO.vhd

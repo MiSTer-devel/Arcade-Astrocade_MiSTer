@@ -72,16 +72,11 @@ entity BALLY is
  	 I_EXTRA_ROM	     : in    std_logic; -- ROM at D000-DFFF ?
 	 I_SPARKLE          : in    std_logic; -- Sparkle Circuit
 	 I_LIGHTPEN         : in    std_logic; -- Light pen interrupt
+	 I_GORF             : in    std_logic; -- Gorf (seperate RAM access for CPU opcodes)
 
     O_BIOS_ADDR        : out   std_logic_vector(15 downto 0);
     I_BIOS_DATA        : in    std_logic_vector( 7 downto 0);
     O_BIOS_CS_L        : out   std_logic;
-
-    -- cart slot
---    O_CAS_ADDR         : out   std_logic_vector(13 downto 0);
---    O_CAS_DATA         : out   std_logic_vector( 7 downto 0);
---    I_CAS_DATA         : in    std_logic_vector( 7 downto 0);
---    O_CAS_CS_L         : out   std_logic;
 
     -- exp slot (subset for now)
     O_EXP_ADDR         : out   std_logic_vector(15 downto 0);
@@ -103,17 +98,7 @@ entity BALLY is
     --
     I_RESET_L          : in    std_logic;
     ENA                : in    std_logic;
-    CLK                : in    std_logic;
-	 
-	 -- Debug stuff, used for pausing and displaying things!
-	 DEBUG_MODE         : in boolean;
-	 O_LED              : out   std_logic;
-	 HEX1       		  : inout std_logic_vector(159 downto 0);
-	 HEX2       		  : inout std_logic_vector(159 downto 0);
-	 
-	 DELAY              : in    std_logic_vector(2 downto 0);
-	 CONTROL            : in    std_logic_vector(7 downto 0);
-	 FIRE               : in    std_logic
+    CLK                : in    std_logic	 
 );
 end;
 
@@ -233,7 +218,6 @@ begin
   exp_casen    <= '1'; -- pull up
 
   -- other cpu signals
---cpu_busrq_l <= '1';  -- needed for pattern board
   cpu_nmi_l   <= '1';
   
   cpu_ena_gated <= ENA and cpu_ena;
@@ -273,16 +257,16 @@ begin
   mux_rfsh_l <= cpu_rfsh_l when cpu_busak_l='1' else '1';
   mux_M1     <= cpu_m1_l when cpu_busak_l='1' else '1';
   mux_int    <= cpu_int_l when cpu_busak_l='1' else '1';
-
+  
   --
   -- primary addr decode
   --
-  p_mem_decode_comb : process(mux_rfsh_l, mux_rd_l, mux_mr_l, addr_bus, exp_sysen, exp_casen,I_EXTRA_ROM,I_HIGH_ROM)
+  p_mem_decode_comb : process(mux_rfsh_l, mux_rd_l, mux_mr_l, addr_bus, exp_sysen, exp_casen,I_EXTRA_ROM,I_HIGH_ROM,I_GORF,cpu_addr)
     variable decode : std_logic;
   begin
 
     sys_cs_l <= '1'; -- system rom
-    cas_cs_l <= '1'; -- game rom
+    cas_cs_l <= '1'; -- gorf RAM access rom
 
     decode := '0';
     if (mux_rd_l = '0') and (mux_mr_l = '0') and (addr_bus(14) = '0' or (I_EXTRA_ROM = '1' and addr_bus(15 downto 13) = "110")) then
@@ -290,45 +274,12 @@ begin
     end if;
 
   	 sys_cs_l <= not (decode and (not addr_bus(15) or I_HIGH_ROM) and exp_sysen);
- 
+	 
+	 -- Gorf access to run code from RAM ($D080-$D085)
+	 if (I_GORF = '1') and (mux_rd_l = '0') and (mux_mr_l = '0') and (cpu_addr(15 downto 3) = "1101000010000") and (cpu_addr(2 downto 0) /= "101") and (cpu_addr(2 downto 0) /= "111") then 
+		cas_cs_l <= '0';
+	 end if;
 
-	-- Anything wanted in debug out goes here
-	if DEBUG_MODE then
-		-- pattern address debug
-		if (pat_RD_L='0') then
-			-- Read Address
-			HEX1(3 downto 0) <= pat_addr(15 downto 12);
-			HEX1(8 downto 5) <= pat_addr(11 downto 8);
-			HEX1(13 downto 10) <= pat_addr(7 downto 4);
-			HEX1(18 downto 15) <= pat_addr(3 downto 0);
-			HEX1(24 downto 20) <= "10000"; -- Space
-		end if;
-		HEX1(74 downto 70) <= "10000"; -- Space
-		HEX1(78 downto 75) <= state;
-		HEX1(84 downto 80) <= "10000"; -- Space
-		if (pat_WR_L='0') then
-			-- Write Address
-			HEX1(88 downto 85) <= pat_addr(15 downto 12);
-			HEX1(93 downto 90) <= pat_addr(11 downto 8);
-			HEX1(98 downto 95) <= pat_addr(7 downto 4);
-			HEX1(103 downto 100) <= pat_addr(3 downto 0);
-			-- pattern data out
-			HEX1(28 downto 25) <= pat_data_o(7 downto 4);
-			HEX1(33 downto 30) <= pat_data_o(3 downto 0);
-			HEX1(39 downto 35) <= "10000"; -- Space
-		end if;
-		HEX1(109 downto 105) <= "10000"; -- Space
-		HEX1(113 downto 110) <= cpu_addr(15 downto 12);
-		HEX1(118 downto 115) <= cpu_addr(11 downto 8);
-		HEX1(123 downto 120) <= cpu_addr(7 downto 4);
-		HEX1(128 downto 125) <= cpu_addr(3 downto 0);
-		HEX1(134 downto 130) <= "10000"; -- Space
-		HEX1(138 downto 135) <= patram(7 downto 4);
-		HEX1(143 downto 140) <= patram(3 downto 0);
-		HEX1(149 downto 145) <= "10000"; -- Space
-	end if;
-
-    --cas_cs_l <= not (decode and (    cpu_addr(13)) and exp_casen);
   end process;
 
   -- Pass BIOS and pixel clock to the top level
@@ -338,13 +289,15 @@ begin
   O_CE_PIX <= pix_ena;
 
   p_cpu_src_data_mux : process(rom_dout, sys_cs_l, cas_cs_l, I_EXP_OE_L, I_EXP_DATA, exp_buzoff_l,
-                               mx_addr_oe_l, mx_addr, mx_data_oe_l, mx_data, mx_io_oe_l, mx_io)
+                               mx_addr_oe_l, mx_addr, mx_data_oe_l, mx_data, mx_io_oe_l, mx_io, patram)
   begin
     -- nasty mux
     if (I_EXP_OE_L = '0') or (exp_buzoff_l = '0') then
       cpu_data_in <= I_EXP_DATA;
     elsif (sys_cs_l = '0') then
       cpu_data_in <= rom_dout;
+	 elsif (cas_cs_l = '0') then
+	   cpu_data_in <= patram;
     elsif (mx_addr_oe_l = '0') then
       cpu_data_in <= mx_addr;
     elsif (mx_data_oe_l = '0') then
@@ -516,12 +469,7 @@ begin
 		-- clks
       I_CPU_ENA         => cpu_ena_gated, -- cpu clock ena
       ENA               => ENA,
-      CLK               => CLK,
-
-		-- Debug
-		I_DELAY           => DELAY,
-		I_FIRE            => FIRE,
-		O_STATE           => state
+      CLK               => CLK
   );
 
   
@@ -604,8 +552,8 @@ begin
     WE_ENA_L => daten_l, -- only used for write
     ENA      => ENA,
     CLK      => CLK,
-	 -- Pattern board access to read ram
-	 PAT_ADDR => pat_addr,
+	 -- Pattern board access to read ram (also used when Gorf runs code from RAM)
+	 PAT_ADDR => addr_bus,
 	 PAT_DATA => patram
     );
 

@@ -39,12 +39,7 @@ entity BALLY_PATTERN is
     -- clks
     I_CPU_ENA         : in   std_logic; -- cpu clock ena
     ENA               : in   std_logic;
-    CLK               : in   std_logic;
-	 
-	 -- Debug info
-	 I_FIRE            : in   std_logic;
-	 I_DELAY           : in   std_logic_vector(2 downto 0);
-	 O_STATE           : out  std_logic_vector(3 downto 0)
+    CLK               : in   std_logic
   );
 end;
 
@@ -273,26 +268,10 @@ begin
 
 			if (I_RESET_L = '0') then
 			  p_State <= Suspended;
+			  next_state <= Suspended;
 			else
 			  p_State <= next_state;
 			end if;      
-		
-		   -- show current state (debug)
-			case p_State is
-			
-				when Suspended => O_STATE <= "0000";
-				when Source => O_STATE <= "0001";
-				when Source_wait => O_STATE <= "0010";
-				when Source_read => O_STATE <= "0011";
-				when Destination => O_STATE <= "0100";
-				when Destination_wait => O_STATE <= "0101";
-				when Increment => O_STATE <= "0110";
-				when Increment_Wait => O_STATE <= "0111";
-				when Repeat => O_STATE <= "1000";
-				when Complete => O_STATE <= "1001";
-				when others => O_STATE <= "1111";
-			
-			end case;
 			
 	end if; -- rising edge CLK
   

@@ -208,11 +208,6 @@ begin
       page_8B <= '1';
     end if;
 
-	 -- MAcro
---    if (I_MXA(15 downto 14) = "11") then -- 0xC000 - 0xFFFF
---      page_8B <= '1';
---    end if;
-
     if (I_MXA(7 downto 5) = "000") and (I_MXA(3) = '0') then
       ports_10_17 <= '1';
     end if;
@@ -220,7 +215,6 @@ begin
     vector_read <= not I_IORQ_L and not I_M1_L; -- interrupt ack
     iorw        <= not I_IORQ_L and     I_M1_L;
     rw          <= not I_MREQ_L and     I_RFSH_L;
-
 
   end process;
 

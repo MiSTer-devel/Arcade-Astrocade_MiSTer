@@ -46,15 +46,10 @@
 //===========================================================================
 // Gorf
 // ----------
-// Make it run
 // Control mapping
 // Dips
 // SC01
 //===========================================================================
-
-
-// Uncomment next line for debug overlay
-//`define DEBUG_MODE
 
 module emu
 (
@@ -133,12 +128,7 @@ assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DD
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 
 assign USER_OUT  = '1;
-`ifdef DEBUG_MODE
-	assign LED_USER  = LED;
-`else
-	assign LED_USER  = ioctl_download;	
-`endif
-
+assign LED_USER  = ioctl_download;	
 assign LED_DISK  = 0;
 assign LED_POWER = 0;
 
@@ -368,9 +358,9 @@ reg btn_fire1_2=0;
 reg btn_fire2_2=0;
 
 // Combined buttons
-wire B1_S = btn_one_player | btn_start_1 | joystick_0[8];
-wire B2_S = btn_two_players | btn_start_2 | joystick_0[9];
-wire B1_C = btn_coin | btn_coin_1 | joystick_0[10];
+wire B1_S = btn_one_player | btn_start_1 | joystick_0[6];
+wire B2_S = btn_two_players | btn_start_2 | joystick_0[7];
+wire B1_C = btn_coin | btn_coin_1 | joystick_0[8];
 
 wire B1_U = btn_up | joystick_0[3];
 wire B1_D = btn_down | joystick_0[2];
@@ -408,10 +398,11 @@ wire HBlank;
 wire [8:0] HCount;
 wire [10:0] VCount;
 reg ce_pix;
-wire LED;
 
 // Corrected VCount (allowing for interlaced output)
 wire [10:0] MyVCount = (VCount >= 264) ? VCount - 263 : VCount;
+// Change blanking signal to stabilise picture
+wire MyVBlank = ((MyVCount < 25) || (MyVCount > 254));	
 
 always @(posedge clk_sys) begin
 	ce_pix <= ~ce_pix;
@@ -424,8 +415,7 @@ assign VGA_F1 = 0;
 wire [2:0] scale = status[11:9];
 wire [2:0] sl = scale ? scale - 1'd1 : 3'd0;
 
-//arcade_video #(320,260,12) arcade_video
-arcade_video #(320,240,12) arcade_video
+arcade_video #(360,240,12) arcade_video
 (
         .*,
 
@@ -434,7 +424,7 @@ arcade_video #(320,240,12) arcade_video
 
         .RGB_in({O_R,O_G,O_B}),
         .HBlank(HBlank),
-        .VBlank(VBlank),
+        .VBlank(MyVBlank),
         .HSync(hs),
         .VSync(vs),
 
@@ -470,6 +460,7 @@ BALLY bally
 	.I_EXTRA_ROM	 (Extra_Rom),  // D000-DFFF = ROM
 	.I_SPARKLE      (Sparkle),
 	.I_LIGHTPEN     (LightPen),
+	.I_GORF         (mod_gorf),
 
 	// BIOS
 	.O_BIOS_ADDR    (bios_addr),
@@ -497,20 +488,7 @@ BALLY bally
 	// System
 	.I_RESET_L      (~reset), //    : in    std_logic;
 	.ENA            (clk_cpu_en), //    : in    std_logic;
-	.CLK            (clk_sys), //    : in    std_logic
-
-`ifdef DEBUG_MODE
-   .DEBUG_MODE     (1'b1),
-	.O_LED          (LED),
-   .HEX1           (Line1),
-   .HEX2           (Line2),
-`else
-   .DEBUG_MODE     (1'b0),	
-`endif	
-	
-	.DELAY          (3'd0),
-	.CONTROL(ct2_sz),
-	.FIRE(B1_F)	
+	.CLK            (clk_sys) //    : in    std_logic
 );
 
 ////////////////////////////  MEMORY  ///////////////////////////////////
@@ -521,9 +499,6 @@ wire [7:0] Lrom_do;
 wire [7:0] Hrom_do;
 wire bios_rd;
 
-// if High_Rom set then 8000-CFFF is also ROM
-// Robby Roto uses D000-EFFF as well
-
 dpram #(14) bios // 0000-3FFF
 (
 	.clock(clk_sys),
@@ -532,6 +507,9 @@ dpram #(14) bios // 0000-3FFF
 	.wren_a(ioctl_wr && (ioctl_addr[15:14] == 2'd0) && !ioctl_index),
 	.q_a(Lrom_do)
 );
+
+// if High_Rom set then 8000-CFFF is also ROM
+// Robby Roto uses D000-EFFF as well
 
 dpram #(15) rom  // 8000-CFFF (and D000-EFFF)
 (
@@ -548,8 +526,8 @@ dpram #(15) rom  // 8000-CFFF (and D000-EFFF)
 reg [3:0] O_R,O_G,O_B;
 
 always @(posedge CLK_VIDEO) begin
-	// Blank screen from 260 onwards (all games)
-	if ((MyVCount >= 260) || (MyVCount <= 21)) begin
+	// Blank screen edges
+	if ((MyVCount >= 260) || (MyVCount <= 21) || (HCount <= 70)) begin
 		O_R <= 4'd0;
 		O_B <= 4'd0;
 		O_G <= 4'd0;
@@ -588,43 +566,8 @@ always @(posedge CLK_VIDEO) begin
 				end
 			end
 		end
-		
-		// Overlay (for debugging)
-		`ifdef DEBUG_MODE
-			if (mod_gorf) begin
-				O_R <= C_R;
-				O_B <= C_B;
-				O_G <= C_G;
-			end
-		`endif
 	end
 end
-
-// numeric overlay for debugging
-
-`ifdef DEBUG_MODE
-	reg [3:0] C_R,C_G,C_B;
-	reg [0:159] Line1,Line2;
-
-	ovo OVERLAY
-	(
-		 .i_r(R),
-		 .i_g(G),
-		 .i_b(B),
-		 .i_clk(CLK_VIDEO),
-		 
-		 .i_Hcount(HCount),
-		 .i_VCount(MyVCount),
-
-		 .o_r(C_R),
-		 .o_g(C_G),
-		 .o_b(C_B),
-		 .ena(sw[1][4]),
-
-		 .in0(Line1),
-		 .in1(Line2)
-	);
-`endif
 
 /////////////////
 /// Seawolf 2 ///

@@ -13,9 +13,7 @@ end entity;
 
 architecture prom of WowMapping is
 	type look is array(0 to  7) of std_logic_vector(7 downto 0);
-	signal lookup: look := (
-		X"05",X"01",X"01",X"00",X"00",X"02",X"02",X"06");
-
+	constant lookup: look := (X"05",X"01",X"01",X"00",X"00",X"02",X"02",X"06");
 begin
 process(clk)
 begin
@@ -28,4 +26,3 @@ begin
 end process;
 
 end architecture;
-
