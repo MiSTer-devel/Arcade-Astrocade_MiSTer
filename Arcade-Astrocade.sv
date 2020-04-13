@@ -29,7 +29,6 @@
 // Seawolf 2
 // ---------
 // Control mapping P2 (Test, possibly need different positions)
-// sound effects (Discrete logic)
 //===========================================================================
 // Space Zap
 // ---------
@@ -46,8 +45,7 @@
 //===========================================================================
 // Gorf
 // ----------
-// Control mapping
-// Dips
+// Control mapping P2
 // SC01
 //===========================================================================
 
@@ -109,6 +107,19 @@ module emu
 	output [15:0] AUDIO_R,
 	output        AUDIO_S,    // 1 - signed audio samples, 0 - unsigned
 
+	//SDRAM interface with lower latency
+	output        SDRAM_CLK,
+	output        SDRAM_CKE,
+	output [12:0] SDRAM_A,
+	output  [1:0] SDRAM_BA,
+	inout  [15:0] SDRAM_DQ,
+	output        SDRAM_DQML,
+	output        SDRAM_DQMH,
+	output        SDRAM_nCS,
+	output        SDRAM_nCAS,
+	output        SDRAM_nRAS,
+	output        SDRAM_nWE, 
+
 	// Open-drain User port.
 	// 0 - D+/RX
 	// 1 - D-/TX
@@ -123,7 +134,7 @@ assign AUDIO_S   = 0;
 assign AUDIO_MIX = 0;
 assign {UART_RTS, UART_TXD, UART_DTR} = 0;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
-assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CKE, SDRAM_CLK, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
+// assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CKE, SDRAM_CLK, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
 assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = 0;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 
@@ -162,6 +173,7 @@ pll pll
 	.rst(0),
 	.outclk_0(clk_sys),
 	.outclk_1(CLK_VIDEO),
+	.outclk_2(clk_snd),
 	.locked(pll_locked)
 );
 
@@ -251,6 +263,8 @@ wire Sparkle   = mod_wow | mod_gorf;                            // Sparkle circu
 wire LightPen  = mod_wow | mod_gorf;                            // Light pen interrupt used
 wire High_Rom  = ~mod_seawolf2;	                               // Seawolf2 has ram C000-CFFF, everything else 8000-CFFF is ROM
 wire Extra_Rom = mod_robby;  											    // Robby has ROM D000-EFFF as well
+wire OnlySamples = mod_seawolf2;                                // Uses samples but no sound chip
+wire PlusSamples = 1'd0;												    // Uses samples AND sound chip
 
 ////////////////////////////  INPUT  ////////////////////////////////////
 
@@ -378,12 +392,35 @@ wire B2_FB = btn_fire2_2 | joystick_1[5];
 
 ////////////////////////////  SOUND  ////////////////////////////////////
 
+// Sound Chip
 wire [7:0] audio_l;
 wire [7:0] audio_r;
-wire Votrax_Status = 1'd1; // ready for speech
+// Samples
+wire [15:0] sample_l;
+wire [15:0] sample_r;
+wire [23:0] wave_addr;
+wire [15:0] wave_data;
+wire        wave_rd;	
 
-assign AUDIO_L = {audio_l, audio_l};
-assign AUDIO_R = Stereo ? {audio_r, audio_r} : {audio_l, audio_l};
+wire Votrax_Status = 1'd1;
+
+assign AUDIO_L = OnlySamples ? sample_l : {audio_l, audio_l};
+assign AUDIO_R = OnlySamples ? sample_r : Stereo ? {audio_r, audio_r} : {audio_l, audio_l};
+
+sdram sdram
+(
+	.*,
+	.init(~pll_locked),
+	.clk(clk_snd),
+
+	.addr(ioctl_download ? ioctl_addr : {1'b0,wave_addr}),
+	.we(ioctl_download && ioctl_wr && (ioctl_index==2)),
+	.rd(~ioctl_download & wave_rd),
+	.din(ioctl_dout),
+	.dout(wave_data),
+
+	.ready()
+);
 
 ////////////////////////////  VIDEO  ////////////////////////////////////
 
@@ -461,6 +498,14 @@ BALLY bally
 	.I_SPARKLE      (Sparkle),
 	.I_LIGHTPEN     (LightPen),
 	.I_GORF         (mod_gorf),
+	.I_SEAWOLF      (mod_seawolf2),
+
+	// Samples
+	.O_SAMP_L       (sample_l),
+	.O_SAMP_R       (sample_r),
+	.O_SAMP_ADDR    (wave_addr),
+	.O_SAMP_READ    (wave_rd),
+	.I_SAMP_DATA    (wave_data),
 
 	// BIOS
 	.O_BIOS_ADDR    (bios_addr),

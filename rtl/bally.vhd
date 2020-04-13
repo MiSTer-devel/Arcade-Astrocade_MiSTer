@@ -73,7 +73,14 @@ entity BALLY is
 	 I_SPARKLE          : in    std_logic; -- Sparkle Circuit
 	 I_LIGHTPEN         : in    std_logic; -- Light pen interrupt
 	 I_GORF             : in    std_logic; -- Gorf (seperate RAM access for CPU opcodes)
+	 I_SEAWOLF          : in    std_logic; -- SeaWolf
 
+	 O_SAMP_L           : out   std_logic_vector(15 downto 0);
+	 O_SAMP_R           : out   std_logic_vector(15 downto 0);
+	 O_SAMP_ADDR        : out   std_logic_vector(23 downto 0);
+	 O_SAMP_READ        : out   std_logic;
+	 I_SAMP_DATA        : in    std_logic_vector(15 downto 0);
+	 
     O_BIOS_ADDR        : out   std_logic_vector(15 downto 0);
     I_BIOS_DATA        : in    std_logic_vector( 7 downto 0);
     O_BIOS_CS_L        : out   std_logic;
@@ -568,5 +575,27 @@ begin
   O_EXP_WR_L         <= cpu_wr_l;
   O_EXP_RD_L         <= cpu_rd_l;
 
-
+ seasound : entity work.SeawolfSound
+   port map (
+	cpu_addr  	=> cpu_addr,
+	cpu_data  	=> cpu_data_out,
+	-- Sample Info
+	s_enable  	=> I_SEAWOLF,
+	s_addr    	=> O_SAMP_ADDR,
+	s_data    	=> I_SAMP_DATA,
+	s_read    	=> O_SAMP_READ,
+	-- Sounds
+	audio_out_l => O_SAMP_L,
+	audio_out_r => O_SAMP_R,
+   -- cpu
+   I_RESET_L 	=> I_RESET_L,
+   I_M1_L    	=> cpu_m1_l,
+   I_RD_L    	=> cpu_rd_l,
+   I_IORQ_L  	=> cpu_iorq_l,
+    -- clks
+	I_CPU_ENA   => cpu_ena,
+	ENA         => ENA,
+	CLK         => CLK
+	);
+	
 end RTL;

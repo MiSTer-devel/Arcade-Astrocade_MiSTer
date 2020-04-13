@@ -1,4 +1,5 @@
 set_global_assignment -name QIP_FILE rtl/T80/T80.qip
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/sdram.sv
 set_global_assignment -name VHDL_FILE rtl/bally_rams.vhd
 set_global_assignment -name VHDL_FILE rtl/bally_io.vhd
 set_global_assignment -name VHDL_FILE rtl/bally_data.vhd
@@ -9,5 +10,6 @@ set_global_assignment -name VHDL_FILE rtl/bally_sparkle.vhd
 set_global_assignment -name VHDL_FILE rtl/bram.vhd
 set_global_assignment -name VHDL_FILE rtl/bally.vhd
 set_global_assignment -name VHDL_FILE rtl/seawolf_gray_binary.vhd
+set_global_assignment -name VHDL_FILE rtl/seawolf_samples.vhd
 set_global_assignment -name VHDL_FILE rtl/ebases_control.vhd
 set_global_assignment -name VHDL_FILE rtl/wow_control.vhd

@@ -26,7 +26,7 @@
 -- is setup to use an analogue joystick for player one. You can turn the fake sight for
 -- player two on and off via a fake dip switch setting. 
 --
--- No sound (yet) since it uses discrete logic
+-- Sound uses samples, originally from mame but modified to closer match the hardware
 -- 
 -- Space Zap
 -- ---------
@@ -51,7 +51,6 @@
 --
 -- Gorf
 -- ----
---
 -- No SC-01A speech chip implemented.
 ---------------------------------------------------------------------------------
 
