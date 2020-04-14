@@ -7,7 +7,7 @@
 	<manufacturer>Dave Nutting Associates / Midway</manufacturer>
 	<category>Maze</category>
 	<rbf>astrocade</rbf>
-	<switches default="00,00,03,FF">
+	<switches default="00,00,07,FF">
 		<dip bits="0"     name="Controls P1" ids="Digital,Analogue"/>
 		<dip bits="1"     name="Controls P2" ids="Digital,Analogue"/>
 		<dip bits="16"    name="Cabinet" ids="Cocktail,Upright"/>
