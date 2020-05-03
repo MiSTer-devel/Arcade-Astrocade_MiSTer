@@ -43,8 +43,9 @@
 --
 library ieee;
   use ieee.std_logic_1164.all;
-  use ieee.std_logic_arith.all;
+  --use ieee.std_logic_arith.all;
   use ieee.std_logic_unsigned.all;
+  use IEEE.numeric_std.all;
 
 entity BALLY is
   port (
@@ -72,37 +73,26 @@ entity BALLY is
  	 I_EXTRA_ROM	     : in    std_logic; -- ROM at D000-DFFF ?
 	 I_SPARKLE          : in    std_logic; -- Sparkle Circuit
 	 I_LIGHTPEN         : in    std_logic; -- Light pen interrupt
-	 I_GORF             : in    std_logic; -- Gorf (seperate RAM access for CPU opcodes)
-	 I_SEAWOLF          : in    std_logic; -- SeaWolf
+	 I_GORF             : in    std_logic; -- Gorf (seperate RAM access for CPU opcodes) and Samples for Votrax
+	 I_SEAWOLF          : in    std_logic; -- SeaWolf samples
 
 	 O_SAMP_L           : out   std_logic_vector(15 downto 0);
 	 O_SAMP_R           : out   std_logic_vector(15 downto 0);
 	 O_SAMP_ADDR        : out   std_logic_vector(23 downto 0);
 	 O_SAMP_READ        : out   std_logic;
 	 I_SAMP_DATA        : in    std_logic_vector(15 downto 0);
+	 O_SAMP_BUSY        : out   std_logic;
 	 
     O_BIOS_ADDR        : out   std_logic_vector(15 downto 0);
     I_BIOS_DATA        : in    std_logic_vector( 7 downto 0);
     O_BIOS_CS_L        : out   std_logic;
-
-    -- exp slot (subset for now)
-    O_EXP_ADDR         : out   std_logic_vector(15 downto 0);
-    O_EXP_DATA         : out   std_logic_vector( 7 downto 0);
-    I_EXP_DATA         : in    std_logic_vector( 7 downto 0);
-    I_EXP_OE_L         : in    std_logic; -- expansion slot driving data bus
-
-    O_EXP_M1_L         : out   std_logic;
-    O_EXP_MREQ_L       : out   std_logic;
-    O_EXP_IORQ_L       : out   std_logic;
-    O_EXP_WR_L         : out   std_logic;
-    O_EXP_RD_L         : out   std_logic;
     --
     O_SWITCH_COL       : out   std_logic_vector(7 downto 0);
     I_SWITCH_ROW       : in    std_logic_vector(7 downto 0);
     O_POT              : out   std_logic_vector(3 downto 0);
     I_POT              : in    std_logic_vector(7 downto 0);
 	 O_TRACK_S		     : out   std_logic_vector(1 downto 0);
-    --
+	 --
     I_RESET_L          : in    std_logic;
     ENA                : in    std_logic;
     CLK                : in    std_logic	 
@@ -131,6 +121,7 @@ architecture RTL of BALLY is
   signal cpu_addr         : std_logic_vector(15 downto 0);
   signal cpu_data_out     : std_logic_vector(7 downto 0);
   signal cpu_data_in      : std_logic_vector(7 downto 0);
+  signal cpu_hl			  : std_logic_vector(15 downto 0);
 
   signal mc1              : std_logic;
   signal mc0              : std_logic;
@@ -154,11 +145,6 @@ architecture RTL of BALLY is
   signal wrctl_l          : std_logic;
   signal ltchdo           : std_logic;
   --
-  -- expansion
-  signal exp_buzoff_l     : std_logic;
-  signal exp_sysen        : std_logic;
-  signal exp_casen        : std_logic;
-
   signal sys_cs_l         : std_logic;
   signal rom0_dout        : std_logic_vector(7 downto 0);
   signal rom1_dout        : std_logic_vector(7 downto 0);
@@ -177,14 +163,12 @@ architecture RTL of BALLY is
   signal pat_data_o       : std_logic_vector(7 downto 0);
   signal pat_data_i       : std_logic_vector(7 downto 0);	
   signal pat_RD_L         : std_logic;
-  signal pat_WR_L         : std_logic;
   signal pat_MR_L         : std_logic;
   signal patram           : std_logic_vector(7 downto 0);	
 
   signal addr_bus         : std_logic_vector(15 downto 0);
   signal data_bus         : std_logic_vector(7 downto 0);
   signal mux_rd_l         : std_logic;
-  signal mux_wr_l         : std_logic;
   signal mux_mr_l         : std_logic;
   signal mux_io_l		     : std_logic;
   signal mux_rfsh_l		  : std_logic;
@@ -192,12 +176,24 @@ architecture RTL of BALLY is
   signal mux_pat_out      : std_logic_vector(7 downto 0);
   signal mux_int          : std_logic;
   
-  signal luma             : std_logic_vector(3 downto 0);
-  signal luma_t           : std_logic_vector(3 downto 0);
+  signal luma             : std_logic_vector(4 downto 0);
+  signal luma_t           : std_logic_vector(4 downto 0);
+  signal backcol          : std_logic_vector(11 downto 0);
   signal lightpen_h       : std_logic_vector(7 downto 0);	
   signal lightpen_v       : std_logic_vector(7 downto 0);	
   
   signal state            : std_logic_vector(3 downto 0);
+  
+  signal SW_Sampl_L       : std_logic_vector(15 downto 0);
+  signal SW_Sampl_R       : std_logic_vector(15 downto 0);
+  signal SW_Sampl_A       : std_logic_vector(23 downto 0);
+  signal GF_Sampl_L       : std_logic_vector(15 downto 0);
+  signal GF_Sampl_R       : std_logic_vector(15 downto 0);
+  signal GF_Sampl_A       : std_logic_vector(23 downto 0);
+  signal SW_Read          : std_logic;
+  signal GF_Read          : std_logic;
+  signal GF_Votrax        : std_logic;
+  
 begin
   --
   -- cpu
@@ -218,11 +214,6 @@ begin
 
   -- high res 80 bytes (320 pixels) and 204 lines.
   -- addr 0 top left. lsb 2 bits describe right hand pixel
-
-  -- expansion sigs
-  exp_buzoff_l <= '1'; -- pull up
-  exp_sysen    <= '1'; -- pull up
-  exp_casen    <= '1'; -- pull up
 
   -- other cpu signals
   cpu_nmi_l   <= '1';
@@ -247,7 +238,8 @@ begin
               BUSAK_n => cpu_busak_l,
               A       => cpu_addr,
               DI      => cpu_data_in,
-              DO      => cpu_data_out
+              DO      => cpu_data_out,
+				  HL      => cpu_hl
   );
 
 				
@@ -257,7 +249,6 @@ begin
   pat_data_i <= cpu_data_out when cpu_busak_l='1' else mux_pat_out;
 		
   mux_rd_l   <= cpu_rd_l when cpu_busak_l='1' else pat_RD_L;
-  mux_wr_l   <= cpu_wr_l when cpu_busak_l='1' else pat_WR_L;
   mux_mr_l   <= cpu_mreq_l when cpu_busak_l='1' else pat_MR_L;
   
   mux_io_l   <= cpu_iorq_l when cpu_busak_l='1' else '1';
@@ -268,7 +259,7 @@ begin
   --
   -- primary addr decode
   --
-  p_mem_decode_comb : process(mux_rfsh_l, mux_rd_l, mux_mr_l, addr_bus, exp_sysen, exp_casen,I_EXTRA_ROM,I_HIGH_ROM,I_GORF,cpu_addr)
+  p_mem_decode_comb : process(mux_rfsh_l, mux_rd_l, mux_mr_l, addr_bus, I_EXTRA_ROM,I_HIGH_ROM,I_GORF,cpu_addr)
     variable decode : std_logic;
   begin
 
@@ -280,7 +271,7 @@ begin
       decode := '1';
     end if;
 
-  	 sys_cs_l <= not (decode and (not addr_bus(15) or I_HIGH_ROM) and exp_sysen);
+  	 sys_cs_l <= not (decode and (not addr_bus(15) or I_HIGH_ROM));
 	 
 	 -- Gorf access to run code from RAM ($D080-$D085)
 	 if (I_GORF = '1') and (mux_rd_l = '0') and (mux_mr_l = '0') and (cpu_addr(15 downto 3) = "1101000010000") and (cpu_addr(2 downto 0) /= "101") and (cpu_addr(2 downto 0) /= "111") then 
@@ -295,13 +286,10 @@ begin
   rom_dout <= I_BIOS_DATA;
   O_CE_PIX <= pix_ena;
 
-  p_cpu_src_data_mux : process(rom_dout, sys_cs_l, cas_cs_l, I_EXP_OE_L, I_EXP_DATA, exp_buzoff_l,
-                               mx_addr_oe_l, mx_addr, mx_data_oe_l, mx_data, mx_io_oe_l, mx_io, patram)
+  p_cpu_src_data_mux : process(rom_dout, sys_cs_l, cas_cs_l, mx_addr_oe_l, mx_addr, mx_data_oe_l, mx_data, mx_io_oe_l, mx_io, patram)
   begin
     -- nasty mux
-    if (I_EXP_OE_L = '0') or (exp_buzoff_l = '0') then
-      cpu_data_in <= I_EXP_DATA;
-    elsif (sys_cs_l = '0') then
+	 if (sys_cs_l = '0') then
       cpu_data_in <= rom_dout;
 	 elsif (cas_cs_l = '0') then
 	   cpu_data_in <= patram;
@@ -460,7 +448,7 @@ begin
 		O_MXA					=> pat_addr,
 		O_MXD					=> pat_data_o,
 		O_RD_L            => pat_RD_L,
-		O_WR_L            => pat_WR_L,
+		O_WR_L            => open,
 		O_MR_L            => pat_MR_L,
 
       -- cpu control signals
@@ -503,6 +491,7 @@ begin
 );
 
   p_video_out : process
+  variable boostcol : integer;
   begin
     wait until rising_edge(CLK);
     if (ENA = '1') then
@@ -510,39 +499,175 @@ begin
       O_VSYNC <= vsync;
       O_COMP_SYNC_L <= (not vsync) and (not hsync);
 
-		if I_SPARKLE='0' then
-			O_VIDEO_R <= video_r;
-			O_VIDEO_G <= video_g;
-			O_VIDEO_B <= video_b;
-			
-			-- Test Gorf colours actually being set to something!
-			-- O_VIDEO_R <= Serial(1) & Serial(1) & Serial(0) & Serial(0);
+		-- No sparkle or this colour not sparkled
+		if I_SPARKLE='0' or luma_t(4)='0' then
+			-- Patch Gorf background colour (looks more like real machine)
+			if I_GORF='1' and (video_r & video_g & video_b)=x"0AD" then
+				O_VIDEO_R <= video_r;
+				O_VIDEO_G <= x"4";
+				O_VIDEO_B <= video_b;
+			else
+				O_VIDEO_R <= video_r;
+				O_VIDEO_G <= video_g;
+				O_VIDEO_B <= video_b;
+			end if;
 		else
-			  O_VIDEO_R <= (video_r and luma_t);
-			  O_VIDEO_G <= (video_g and luma_t);
-			  O_VIDEO_B <= (video_b and luma_t);
---			 case luma_t(3 downto 2) is
---			 
---				 when "11" => -- White
---								  O_VIDEO_R <= "1111";
---								  O_VIDEO_G <= "1111";
---								  O_VIDEO_B <= "1111";
---				 when "10" => -- B.Grey
---								  O_VIDEO_R <= "1011";
---								  O_VIDEO_G <= "1011";
---								  O_VIDEO_B <= "1011";
---				 when others =>
---								  if luma_t(3 downto 0) = "0000" then
---								     -- Black
---									  O_VIDEO_R <= "0000";
---									  O_VIDEO_G <= "0000";
---									  O_VIDEO_B <= "0000";
---								  else
---									  O_VIDEO_R <= (video_r and (luma_t(2 downto 0) & "1"));
---									  O_VIDEO_G <= (video_g and (luma_t(2 downto 0) & "1"));
---									  O_VIDEO_B <= (video_b and (luma_t(2 downto 0) & "1"));
---								  end if;
---			end case;
+			 -- hardware injects 4 levels into Y line, thus increasing luminosity
+			 -- It can also clamp Y line to GND, thus blacking it out
+			 -- this is not so easy to do in RGB land, so use custom colours to look more like real hardware
+			 case (video_r & video_g & video_b) is
+				
+				when x"999" =>		-- Gorf Stars
+					if luma_t(3)='0' then
+						if luma_t(2 downto 0)="000" then
+							O_VIDEO_R <= "0000";
+							O_VIDEO_G <= "0000";
+							O_VIDEO_B <= "0000";
+						else
+							O_VIDEO_R <= video_r;
+							O_VIDEO_G <= video_g;
+							O_VIDEO_B <= video_b;
+						end if;
+					else
+						O_VIDEO_R <= luma_t(3 downto 0);
+						O_VIDEO_G <= luma_t(3 downto 0);
+						O_VIDEO_B <= luma_t(3 downto 0);
+					end if;
+
+--				when x"3FF" =>		-- WoW Stars
+--					if luma_t(3)='0' then
+--						if luma_t(2 downto 0)="000" then
+--							O_VIDEO_R <= "0000";
+--							O_VIDEO_G <= "0000";
+--							O_VIDEO_B <= "0000";
+--						else
+--							O_VIDEO_R <= video_r;
+--							O_VIDEO_G <= video_g;
+--							O_VIDEO_B <= video_b;
+--						end if;
+--					else
+--						O_VIDEO_R <= '0' & luma_t(3 downto 1);
+--						O_VIDEO_G <= x"F";
+--						O_VIDEO_B <= x"F";
+--					end if;
+					
+				when x"F02" | x"F00" =>		-- Gorf space invader Red / WoW Red
+					case luma_t(3 downto 0) is
+						when "0000" => 
+							O_VIDEO_R <= "0000";
+							O_VIDEO_G <= "0000";
+							O_VIDEO_B <= "0000";
+						when "0111" =>
+							O_VIDEO_R <= "1111";
+							O_VIDEO_G <= "0010";
+							O_VIDEO_B <= "0011";
+						when "1000" =>
+							O_VIDEO_R <= "1111";
+							O_VIDEO_G <= "0011";
+							O_VIDEO_B <= "0100";
+						when "1001" =>
+							O_VIDEO_R <= "1111";
+							O_VIDEO_G <= "0100";
+							O_VIDEO_B <= "0101";
+						when "1010" =>
+							O_VIDEO_R <= "1111";
+							O_VIDEO_G <= "0101";
+							O_VIDEO_B <= "0111";
+						when "1011" =>
+							O_VIDEO_R <= "1111";
+							O_VIDEO_G <= "0110";
+							O_VIDEO_B <= "1000";
+						when "1100" =>
+							O_VIDEO_R <= "1111";
+							O_VIDEO_G <= "0111";
+							O_VIDEO_B <= "1001";
+						when "1101" =>
+							O_VIDEO_R <= "1111";
+							O_VIDEO_G <= "1000";
+							O_VIDEO_B <= "1010";
+						when "1110" =>
+							O_VIDEO_R <= "1111";
+							O_VIDEO_G <= "1001";
+							O_VIDEO_B <= "1011";
+						when "1111" =>
+							O_VIDEO_R <= "1111";
+							O_VIDEO_G <= "1010";
+							O_VIDEO_B <= "1100";
+						when others =>
+							O_VIDEO_R <= "1111";
+							O_VIDEO_G <= "0001";
+							O_VIDEO_B <= "0010";
+					end case;
+					
+				when x"F14" | x"F44" =>	-- Gorf flagship red
+					case luma_t(3 downto 0) is
+						when "0000" => 
+							O_VIDEO_R <= x"0";
+							O_VIDEO_G <= x"0";
+							O_VIDEO_B <= x"0";
+						when "0111" =>
+							O_VIDEO_R <= x"E";
+							O_VIDEO_G <= x"2";
+							O_VIDEO_B <= x"0";
+						when "1000" =>
+							O_VIDEO_R <= x"F";
+							O_VIDEO_G <= x"4";
+							O_VIDEO_B <= x"0";
+						when "1001" =>
+							O_VIDEO_R <= x"F";
+							O_VIDEO_G <= x"5";
+							O_VIDEO_B <= x"0";
+						when "1010" =>
+							O_VIDEO_R <= x"F";
+							O_VIDEO_G <= x"6";
+							O_VIDEO_B <= x"1";
+						when "1011" =>
+							O_VIDEO_R <= x"F";
+							O_VIDEO_G <= x"7";
+							O_VIDEO_B <= x"1";
+						when "1100" =>
+							O_VIDEO_R <= x"F";
+							O_VIDEO_G <= x"8";
+							O_VIDEO_B <= x"2";
+						when "1110" | "1111" =>
+							O_VIDEO_R <= x"D";
+							O_VIDEO_G <= x"1";
+							O_VIDEO_B <= x"0";
+						when others =>
+							O_VIDEO_R <= x"A";
+							O_VIDEO_G <= x"0";
+							O_VIDEO_B <= x"0";
+					end case;
+					
+				WHEN x"fff" => -- Gorf shield - Invaders
+					if luma_t(3) ='1' then
+						O_VIDEO_R <= "1111";
+						O_VIDEO_G <= "1111";
+						O_VIDEO_B <= "1111";
+					else
+						O_VIDEO_R <= X"0"; -- patched colour table to match
+						O_VIDEO_G <= X"4";
+						O_VIDEO_B <= X"D";
+					end if;
+					backcol <= x"04D"; -- matches patched colour
+					
+				when others =>  -- colour fades between screens
+
+				  if video_r & video_g & video_b = X"000" then
+						backcol <= x"000";
+				  end if;
+				  
+				  if luma_t(3 downto 0) = "0000" then
+						-- on one gorf screen goes to background colour instead so we set backcol especially for that!
+						O_VIDEO_R <= backcol(11 downto 8);
+						O_VIDEO_G <= backcol(7 downto 4);
+						O_VIDEO_B <= backcol(3 downto 0);
+				  else
+					   O_VIDEO_R <= (video_r and luma_t(3 downto 0));
+					   O_VIDEO_G <= (video_g and luma_t(3 downto 0));
+					   O_VIDEO_B <= (video_b and luma_t(3 downto 0));
+				  end if;
+			end case;
 		end if;
       O_FPSYNC  <= fpsync;
 		luma_t <= luma; -- delay 1 cycle
@@ -564,38 +689,58 @@ begin
 	 PAT_DATA => patram
     );
 
-  -- drive exp
-  -- all sigs should be bi-dir as exp slot devices can take control of the bus
-  -- this will be ok for the test cart
-  O_EXP_ADDR         <= cpu_addr;
-  O_EXP_DATA         <= cpu_data_out; -- not quite right, should be resolved data bus so exp slot can read customs / ram
-  O_EXP_M1_L         <= cpu_m1_l;
-  O_EXP_MREQ_L       <= cpu_mreq_l;
-  O_EXP_IORQ_L       <= cpu_iorq_l;
-  O_EXP_WR_L         <= cpu_wr_l;
-  O_EXP_RD_L         <= cpu_rd_l;
-
+ O_SAMP_L    <= SW_Sampl_L when I_SEAWOLF='1' else GF_Sampl_L;
+ O_SAMP_R    <= SW_Sampl_R when I_SEAWOLF='1' else GF_Sampl_R;
+ O_SAMP_ADDR <= SW_Sampl_A when I_SEAWOLF='1' else GF_Sampl_A;
+ O_SAMP_READ <= SW_Read    when I_SEAWOLF='1' else GF_Read;
+ O_SAMP_BUSY <= GF_Votrax;
+		
  seasound : entity work.SeawolfSound
    port map (
-	cpu_addr  	=> cpu_addr,
-	cpu_data  	=> cpu_data_out,
-	-- Sample Info
-	s_enable  	=> I_SEAWOLF,
-	s_addr    	=> O_SAMP_ADDR,
-	s_data    	=> I_SAMP_DATA,
-	s_read    	=> O_SAMP_READ,
-	-- Sounds
-	audio_out_l => O_SAMP_L,
-	audio_out_r => O_SAMP_R,
-   -- cpu
-   I_RESET_L 	=> I_RESET_L,
-   I_M1_L    	=> cpu_m1_l,
-   I_RD_L    	=> cpu_rd_l,
-   I_IORQ_L  	=> cpu_iorq_l,
-    -- clks
-	I_CPU_ENA   => cpu_ena,
-	ENA         => ENA,
-	CLK         => CLK
+		cpu_addr  	=> cpu_addr,
+		cpu_data  	=> cpu_data_out,
+		-- Sample Info
+		s_enable  	=> I_SEAWOLF,
+		s_addr    	=> SW_Sampl_A,
+		s_data    	=> I_SAMP_DATA,
+		s_read    	=> SW_Read,
+		-- Sounds
+		audio_out_l => SW_Sampl_L,
+		audio_out_r => SW_Sampl_R,
+		-- cpu
+		I_RESET_L 	=> I_RESET_L,
+		I_M1_L    	=> cpu_m1_l,
+		I_RD_L    	=> cpu_rd_l,
+		I_IORQ_L  	=> cpu_iorq_l,
+		 -- clks
+		I_CPU_ENA   => cpu_ena,
+		ENA         => ENA,
+		CLK         => CLK
 	);
+	
+gorfvotrax : entity work.GorfSound
+   port map (
+		I_MXA     	=> cpu_addr,
+		-- Sample Info
+		s_enable  	=> I_GORF,
+		s_addr    	=> GF_Sampl_A,
+		s_data    	=> I_SAMP_DATA,
+		s_read    	=> GF_Read,
+		-- Sounds
+		audio_out_l => GF_Sampl_L,
+		audio_out_r => GF_Sampl_R,
+		votrax		=> GF_Votrax,
+		-- cpu
+		I_RESET_L 	=> I_RESET_L,
+		I_M1_L    	=> cpu_m1_l,
+		I_RD_L    	=> cpu_rd_l,
+		I_IORQ_L  	=> cpu_iorq_l,
+		I_HL        => cpu_hl,
+		 -- clks
+		I_CPU_ENA   => cpu_ena,
+		ENA         => ENA,
+		CLK         => CLK
+	);
+	
 	
 end RTL;

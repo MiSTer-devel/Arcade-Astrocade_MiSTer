@@ -95,7 +95,8 @@ entity T80s is
 		OUT0    : in  std_logic := '0';  -- 0 => OUT(C),0, 1 => OUT(C),255
 		A       : out std_logic_vector(15 downto 0);
 		DI      : in std_logic_vector(7 downto 0);
-		DO      : out std_logic_vector(7 downto 0)
+		DO      : out std_logic_vector(7 downto 0);
+		HL      : out std_logic_vector(15 downto 0) -- Needed for Gorf / WoW speech samples
 	);
 end T80s;
 
@@ -108,7 +109,7 @@ architecture rtl of T80s is
 	signal DI_Reg		: std_logic_vector(7 downto 0);
 	signal MCycle		: std_logic_vector(2 downto 0);
 	signal TState		: std_logic_vector(2 downto 0);
-
+	signal z80reg     : std_logic_vector(211 downto 0);
 begin
 
 	u0 : work.T80
@@ -137,9 +138,13 @@ begin
 		MC => MCycle,
 		TS => TState,
 		OUT0 => OUT0,
-		IntCycle_n => IntCycle_n
+		IntCycle_n => IntCycle_n,
+		REG => z80reg
 	);
 
+	-- Pass HL back to Bally.vhd
+	HL <= z80reg(127 downto 112);
+	
 	process (RESET_n, CLK)
 	begin
 		if RESET_n = '0' then

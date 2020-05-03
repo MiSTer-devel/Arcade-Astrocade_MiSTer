@@ -4,6 +4,7 @@
 --
 -- V 1.0 30/03/2020
 -- V 1.1 06/04/2020
+-- V 1.2 03/05/2020
 -- 
 ------------------------------------------------------------------------------------
 -- From FPGA implementation of the Bally Astrocade based on a project by MikeJ et al
@@ -51,7 +52,7 @@
 --
 -- Gorf
 -- ----
--- No SC-01A speech chip implemented.
+-- SC-01A speech implemented using samples
 ---------------------------------------------------------------------------------
 
                                 *** Attention ***

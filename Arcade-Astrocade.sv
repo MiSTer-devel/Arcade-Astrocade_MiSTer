@@ -129,16 +129,9 @@ module emu
 	output  [6:0] USER_OUT
 );
 
-assign ADC_BUS  = 'Z;
-assign AUDIO_S   = 0;
-assign AUDIO_MIX = 0;
-assign {UART_RTS, UART_TXD, UART_DTR} = 0;
-assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
-// assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CKE, SDRAM_CLK, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
-assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = 0;
-assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
+assign AUDIO_S   = 1; // Signed ?
 
-assign USER_OUT  = '1;
+assign USER_OUT  = 6'd63;
 assign LED_USER  = ioctl_download;	
 assign LED_DISK  = 0;
 assign LED_POWER = 0;
@@ -166,6 +159,7 @@ localparam CONF_STR = {
 
 wire clk_sys, clk_snd;
 wire pll_locked;
+wire CLK_VIDEO;
 
 pll pll
 (
@@ -235,7 +229,7 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 ////////////////////////////  GAME configuration  ////////////////////////////
 
 reg [7:0] sw[8];
-always @(posedge clk_sys) if (ioctl_wr && (ioctl_index==254) && !ioctl_addr[24:3]) sw[ioctl_addr[2:0]] <= ioctl_dout;
+always @(posedge clk_sys) if (ioctl_wr && (ioctl_index==254) && !ioctl_addr[24:3]) sw[ioctl_addr[2:0]] <= ioctl_dout[7:0];
 
 reg mod_ebase    = 0;
 reg mod_seawolf2 = 0;
@@ -246,7 +240,7 @@ reg mod_robby    = 0;
 
 always @(posedge clk_sys) begin
 	reg [7:0] mod = 0;
-	if (ioctl_wr & (ioctl_index==1)) mod <= ioctl_dout;
+	if (ioctl_wr & (ioctl_index==1)) mod <= ioctl_dout[7:0];
 	
 	mod_ebase	   <= (mod == 1);
 	mod_seawolf2	<= (mod == 2);
@@ -257,14 +251,13 @@ always @(posedge clk_sys) begin
 end
 
 // Game options
-wire Pattern   = mod_spacezap | mod_gorf | mod_wow | mod_robby; // Pattern board used
 wire Stereo    = mod_gorf | mod_wow | mod_robby;                // Two sound chips fitted
 wire Sparkle   = mod_wow | mod_gorf;                            // Sparkle circuit used
 wire LightPen  = mod_wow | mod_gorf;                            // Light pen interrupt used
 wire High_Rom  = ~mod_seawolf2;	                               // Seawolf2 has ram C000-CFFF, everything else 8000-CFFF is ROM
 wire Extra_Rom = mod_robby;  											    // Robby has ROM D000-EFFF as well
 wire OnlySamples = mod_seawolf2;                                // Uses samples but no sound chip
-wire PlusSamples = 1'd0;												    // Uses samples AND sound chip
+wire PlusSamples = mod_gorf;											    // Uses samples AND sound chip
 
 ////////////////////////////  INPUT  ////////////////////////////////////
 
@@ -296,7 +289,7 @@ wire [7:0] ct0_ww = {sw[2][2],~B2_S,~B1_S,1'b1,sw[2][1],1'b1,~B1_C,1'b1};
 wire [7:0] ct1_ww = sw[0][1] ? {2'd3,~B2_F,~W2_FB,~W2_R,~W2_L,~W2_D,~W2_U} : {2'd3,~B2_F,B2_FB,~B2_R,~B2_L,~B2_D,~B2_U};
 wire [7:0] ct2_ww = sw[0][0] ? {Votrax_Status,1'd1,~B1_F,~W1_FB,~W1_R,~W1_L,~W1_D,~W1_U} : {Votrax_Status,1'd1,~B1_F,B1_FB,~B1_R,~B1_L,~B1_D,~B1_U};
 // Gorf
-wire [7:0] ct0_gf = {1'd0,sw[2][0],~B2_S,~B1_S,1'b1,sw[2][1],~B1_C,1'b1};
+wire [7:0] ct0_gf = {sw[2][2],sw[2][0],~B2_S,~B1_S,1'b1,sw[2][1],~B1_C,1'b1};
 wire [7:0] ct1_gf = {1'd0,2'd1,~B2_F,~B2_R,~B2_L,~B2_D,~B2_U};
 wire [7:0] ct2_gf = {Votrax_Status,2'd1,~B1_F,~B1_R,~B1_L,~B1_D,~B1_U};
 // Robby Roto
@@ -401,11 +394,14 @@ wire [15:0] sample_r;
 wire [23:0] wave_addr;
 wire [15:0] wave_data;
 wire        wave_rd;	
+wire        Votrax_Status;
 
-wire Votrax_Status = 1'd1;
+// combine speech and SFX (speech seems much louder, so turn it down in comparison to SFX)
+wire [15:0] Sum_L = {1'd0, audio_l, audio_l[7:1]} + {3'd0,sample_l[15:3]}; 
+wire [15:0] Sum_R = {1'd0, audio_r, audio_r[7:1]} + {3'd0,sample_r[15:3]}; 
 
-assign AUDIO_L = OnlySamples ? sample_l : {audio_l, audio_l};
-assign AUDIO_R = OnlySamples ? sample_r : Stereo ? {audio_r, audio_r} : {audio_l, audio_l};
+assign AUDIO_L = OnlySamples ? sample_l : PlusSamples ? Sum_L : {audio_l, audio_l};
+assign AUDIO_R = OnlySamples ? sample_r : PlusSamples ? Sum_R : Stereo ? {audio_r, audio_r} : {audio_l, audio_l};
 
 sdram sdram
 (
@@ -439,7 +435,7 @@ reg ce_pix;
 // Corrected VCount (allowing for interlaced output)
 wire [10:0] MyVCount = (VCount >= 264) ? VCount - 263 : VCount;
 // Change blanking signal to stabilise picture
-wire MyVBlank = ((MyVCount < 25) || (MyVCount > 254));	
+wire MyVBlank = ((MyVCount < 25) || (MyVCount > 254));
 
 always @(posedge clk_sys) begin
 	ce_pix <= ~ce_pix;
@@ -449,8 +445,6 @@ assign VGA_F1 = 0;
 
 //actual: 0-225, 0-238
 //quoted: 160/320, 102/204
-wire [2:0] scale = status[11:9];
-wire [2:0] sl = scale ? scale - 1'd1 : 3'd0;
 
 arcade_video #(360,240,12) arcade_video
 (
@@ -492,7 +486,7 @@ BALLY bally
 	.O_HCOUNT       (HCount),
 	.O_VCOUNT       (VCount),
 
-	// Rom Addressing
+	// Rom Addressing and game ID
 	.I_HIGH_ROM		 (High_Rom),	// 8000-CFFF = ROM
 	.I_EXTRA_ROM	 (Extra_Rom),  // D000-DFFF = ROM
 	.I_SPARKLE      (Sparkle),
@@ -506,22 +500,12 @@ BALLY bally
 	.O_SAMP_ADDR    (wave_addr),
 	.O_SAMP_READ    (wave_rd),
 	.I_SAMP_DATA    (wave_data),
+	.O_SAMP_BUSY    (Votrax_Status),
 
 	// BIOS
 	.O_BIOS_ADDR    (bios_addr),
 	.O_BIOS_CS_L    (bios_rd),
 	.I_BIOS_DATA    (bios_do),
-
-	// Expansion cart (not needed!)
-	.O_EXP_ADDR     (), //    : out   std_logic_vector(15 downto 0);
-	.O_EXP_DATA     (8'hFF), //    : out   std_logic_vector( 7 downto 0);
-	.I_EXP_DATA     (), //    : in    std_logic_vector( 7 downto 0);
-	.I_EXP_OE_L     (1'b1), //    : in    std_logic; -- expansion slot driving data bus
-	.O_EXP_M1_L     (), //    : out   std_logic;
-	.O_EXP_MREQ_L   (), //    : out   std_logic;
-	.O_EXP_IORQ_L   (), //    : out   std_logic;
-	.O_EXP_WR_L     (), //    : out   std_logic;
-	.O_EXP_RD_L     (), //    : out   std_logic;
 
 	// Input
 	.O_SWITCH_COL   (col_select), //    : out   std_logic_vector(7 downto 0);
@@ -549,7 +533,7 @@ dpram #(14) bios // 0000-3FFF
 	.clock(clk_sys),
 	.address_a(ioctl_download ? ioctl_addr[13:0] : bios_addr[13:0]),
 	.data_a(ioctl_dout),
-	.wren_a(ioctl_wr && (ioctl_addr[15:14] == 2'd0) && !ioctl_index),
+	.wren_a(ioctl_wr && (ioctl_addr[15:14] == 2'd0) && (ioctl_index == 0)),
 	.q_a(Lrom_do)
 );
 
@@ -561,7 +545,7 @@ dpram #(15) rom  // 8000-CFFF (and D000-EFFF)
 	.clock(clk_sys),
 	.address_a(ioctl_download ? {~ioctl_addr[14],ioctl_addr[13:0]} : bios_addr[14:0] ), 
 	.data_a(ioctl_dout),
-	.wren_a(ioctl_wr && (ioctl_addr[15:14] != 2'd0) && !ioctl_index),
+	.wren_a(ioctl_wr && (ioctl_addr[15:14] != 2'd0) && (ioctl_index == 0)),
 	.q_a(Hrom_do)
 );
 
@@ -610,9 +594,10 @@ always @(posedge CLK_VIDEO) begin
 					end
 				end
 			end
-		end
+		end		
 	end
 end
+
 
 /////////////////
 /// Seawolf 2 ///

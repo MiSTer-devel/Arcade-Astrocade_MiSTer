@@ -41,13 +41,22 @@ architecture RTL of SeawolfSound is
  -- wave current addresses in sdram
  signal snd_addrs : snd_addr_t;  
  
+ -- Loaded
+ -- 0 - minehit.wav         1 44100 000000 04B3FE
+ -- 1 - my-dive.wav         1 44100 04B400 05D1D0
+ -- 2 - my-shiphit.wav      1 44100 05D1D2 0B33F0
+ -- 3 - my-sonar.wav        1 44100 0B33F2 0C94B6
+ -- 4 - my-torpedo.wav      1 44100 0C94B8 0F683A
+ 
+ -- 0-8 channels to play - sonar,torpedo,ship,mine,dive,sonar,torpedo,ship,mine
+ 
  -- wave start addresses in sdram 
  constant snd_starts : snd_addr_t := (
-		x"0B34EC",x"0C95DE",x"05D2A0",x"011E2A",x"00002C",x"0B34EC",x"0C95DE",x"05D2A0",x"011E2A");
+		x"0B33F2",x"0C94B8",x"05D1D2",x"000000",x"04B400",x"0B33F2",x"0C94B8",x"05D1D2",x"000000");
 		
  -- wave end addresses in sdram 
  constant snd_stops : snd_addr_t := (
-		x"0C959C",x"0F695F",x"0B34A4",x"05D228",x"011DFA",x"0C959C",x"0F695F",x"0B34A4",x"05D228");
+		x"0C94B6",x"0F683A",x"0B33F0",x"04B3FE",x"05D1D0",x"0C94B6",x"0F683A",x"0B33F0",x"04B3FE");
 
  type snd_flag_t is array(snd_id_t) of std_logic;
  
@@ -80,7 +89,7 @@ architecture RTL of SeawolfSound is
  --#8  - Port 40 bit 5 Mine Hit Right 
 
  -- Port 41 bits 0-2 volume dive for right channel (left = not bits 0-2)
- -- Port 41 bit  7   volume of everything else (on / off)
+ -- Port 41 bit  7   volume of everything (on / off)
 
    p_chip_sel : process(I_CPU_ENA, cpu_addr)
   begin

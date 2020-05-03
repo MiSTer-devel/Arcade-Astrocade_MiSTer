@@ -27,7 +27,7 @@ entity BALLY_SPARKLE is
 	 -- Screen Info
 	 I_SCREENSTART     : in   std_logic;
 	 I_CODE            : in   std_logic_vector(1 downto  0);
-	 O_LUMA            : out  std_logic_vector(3 downto  0);
+	 O_LUMA            : out  std_logic_vector(4 downto  0);
 	 
     -- clks
     I_CPU_ENA         : in   std_logic; -- cpu clock ena
@@ -107,17 +107,17 @@ begin
 			if I_CODE="00" then
 				if prng1(7 downto 0) = "11111110" then
 					-- it's a star, sort out brightness
-					O_LUMA <= prng2(4) & prng2(12) & prng2(16) & prng2(8);
+					O_LUMA <= '1' & prng2(4) & prng2(12) & prng2(16) & prng2(8);
 				else
 					-- black it out
-					O_LUMA <= "0000";
+					O_LUMA <= "10000";
 				end if;
 			else
 				-- sparkle this colour
-				O_LUMA <= prng2(4) & prng2(12) & prng2(16) & prng2(8);
+				O_LUMA <= '1' & prng2(4) & prng2(12) & prng2(16) & prng2(8);
 			end if;
 		else
-			O_LUMA <= "1111";
+			O_LUMA <= "00000";
 		end if;
 			
 	end process;
