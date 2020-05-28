@@ -215,7 +215,7 @@ architecture RTL of GorfSound is
 
 			 case Phoneme is
 				when "000011" => snd_play <= 74; 		-- Pause
-				when "111110" => snd_play <= 61; 		-- SPause (first call is phoneme 3E)
+				when "111110" => snd_play <= 61; 		-- SPause
 				when "111111" => snd_play <= 87; 		-- STOP
 				when others =>
 					case WriteAddress is	
@@ -336,8 +336,8 @@ architecture RTL of GorfSound is
 			 -- All samples 11khz, so every 4th call
 			 if clk11k="11" then
 				 -- latch final audio / reset sum
-				 audio_out_l <= audio;
-				 audio_out_r <= audio;
+				 audio_out_l <= not audio(15) & audio(14 downto 0); -- Convert to unsigned
+				 audio_out_r <= not audio(15) & audio(14 downto 0); --     for output
 			 end if;
 			
 		 else

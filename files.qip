@@ -14,3 +14,4 @@ set_global_assignment -name VHDL_FILE rtl/gorf_samples.vhd
 set_global_assignment -name VHDL_FILE rtl/seawolf_gray_binary.vhd
 set_global_assignment -name VHDL_FILE rtl/seawolf_samples.vhd
 set_global_assignment -name VHDL_FILE rtl/wow_control.vhd
+set_global_assignment -name SYSTEMVERILOG_FILE "Arcade-Astrocade.sv"

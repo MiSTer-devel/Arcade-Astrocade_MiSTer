@@ -1,7 +1,7 @@
 //============================================================================
 //  Arcade version of Astrocade 
 //
-//  Port to MiSTer and add arcade hardware by Mike Coates
+//  Add arcade hardware by Mike Coates
 //
 //  This program is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU General Public License as published by the Free
@@ -36,7 +36,7 @@
 //===========================================================================
 // Wizard of Wor
 // ----------
-// Control mapping P2 (test digital, add analogue)
+// Control mapping P2 (test digital)
 // SC01
 //===========================================================================
 // Robby Roto
@@ -46,7 +46,7 @@
 // Gorf
 // ----------
 // Control mapping P2
-// SC01
+// SC01 done using samples for the moment.
 //===========================================================================
 
 module emu
@@ -106,7 +106,18 @@ module emu
 	output [15:0] AUDIO_L,
 	output [15:0] AUDIO_R,
 	output        AUDIO_S,    // 1 - signed audio samples, 0 - unsigned
+	output  [1:0] AUDIO_MIX,  // 0 - no mix, 1 - 25%, 2 - 50%, 3 - 100% (mono)
 
+	//ADC
+	inout   [3:0] ADC_BUS,
+
+	//SD-SPI
+	output        SD_SCK,
+	output        SD_MOSI,
+	input         SD_MISO,
+	output        SD_CS,
+	input         SD_CD,
+	
 	//SDRAM interface with lower latency
 	output        SDRAM_CLK,
 	output        SDRAM_CKE,
@@ -120,6 +131,13 @@ module emu
 	output        SDRAM_nRAS,
 	output        SDRAM_nWE, 
 
+	input         UART_CTS,
+	output        UART_RTS,
+	input         UART_RXD,
+	output        UART_TXD,
+	output        UART_DTR,
+	input         UART_DSR,
+
 	// Open-drain User port.
 	// 0 - D+/RX
 	// 1 - D-/TX
@@ -129,9 +147,16 @@ module emu
 	output  [6:0] USER_OUT
 );
 
-assign AUDIO_S   = 1; // Signed ?
+///////// Default values for ports not used in this core /////////
 
-assign USER_OUT  = 6'd63;
+assign ADC_BUS  = 'Z;
+assign USER_OUT = '1;
+assign {UART_RTS, UART_TXD, UART_DTR} = 0;
+assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
+
+assign AUDIO_S   = mod_seawolf2; // signed - seawolf 2, unsigned others
+assign AUDIO_MIX = 2'd0;
+
 assign LED_USER  = ioctl_download;	
 assign LED_DISK  = 0;
 assign LED_POWER = 0;
@@ -397,8 +422,8 @@ wire        wave_rd;
 wire        Votrax_Status;
 
 // combine speech and SFX (speech seems much louder, so turn it down in comparison to SFX)
-wire [15:0] Sum_L = {1'd0, audio_l, audio_l[7:1]} + {3'd0,sample_l[15:3]}; 
-wire [15:0] Sum_R = {1'd0, audio_r, audio_r[7:1]} + {3'd0,sample_r[15:3]}; 
+wire [15:0] Sum_L = {1'd0, audio_l, audio_l[7:1]} + {2'd0,sample_l[15:2]}; 
+wire [15:0] Sum_R = {1'd0, audio_r, audio_r[7:1]} + {2'd0,sample_r[15:2]}; 
 
 assign AUDIO_L = OnlySamples ? sample_l : PlusSamples ? Sum_L : {audio_l, audio_l};
 assign AUDIO_R = OnlySamples ? sample_r : PlusSamples ? Sum_R : Stereo ? {audio_r, audio_r} : {audio_l, audio_l};
