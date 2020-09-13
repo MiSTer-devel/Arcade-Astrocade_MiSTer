@@ -82,6 +82,7 @@ entity BALLY is
 	 O_SAMP_READ        : out   std_logic;
 	 I_SAMP_DATA        : in    std_logic_vector(15 downto 0);
 	 O_SAMP_BUSY        : out   std_logic;
+	 I_SAMP_READY       : in    std_logic; -- DDRAM use only
 	 
     O_BIOS_ADDR        : out   std_logic_vector(15 downto 0);
     I_BIOS_DATA        : in    std_logic_vector( 7 downto 0);
@@ -101,7 +102,55 @@ end;
 
 architecture RTL of BALLY is
 
-  --  signals
+	COMPONENT SeawolfSound PORT (
+		cpu_addr  	: in  std_logic_vector(15 downto 0);
+		cpu_data  	: in  std_logic_vector(7 downto 0);
+		-- Sample Info
+		s_enable  	: in  std_logic;
+		s_addr    	: out std_logic_vector(23 downto 0);
+		s_data    	: in  std_logic_vector(15 downto 0);
+		s_read    	: out std_logic;
+		s_ready     : in  std_logic;
+		-- Sounds
+		audio_out_l : out std_logic_vector(15 downto 0);
+		audio_out_r : out std_logic_vector(15 downto 0);
+		-- cpu
+		I_RESET_L 	: in    std_logic;
+		I_M1_L    	: in    std_logic;
+		I_RD_L    	: in    std_logic;
+		I_IORQ_L  	: in    std_logic;
+		 -- clks
+		I_CPU_ENA 	: in   std_logic; -- cpu clock ena
+		ENA       	: in   std_logic; 
+		CLK       	: in   std_logic
+	);  -- sys clock (14 Mhz)
+	END COMPONENT;
+
+	COMPONENT GorfSound PORT (
+		s_enable  	: in  std_logic;
+		s_addr    	: out std_logic_vector(23 downto 0);
+		s_data    	: in  std_logic_vector(15 downto 0);
+		s_read    	: out std_logic;
+		s_ready     : in  std_logic;
+		-- Sounds out
+		audio_out_l : out std_logic_vector(15 downto 0);
+		audio_out_r : out std_logic_vector(15 downto 0);
+		votrax      : out std_logic;     
+		-- cpu
+		I_MXA    	: in  std_logic_vector(15 downto 0);
+		I_RESET_L 	: in  std_logic;
+		I_M1_L    	: in  std_logic;
+		I_RD_L    	: in  std_logic;
+		I_IORQ_L  	: in  std_logic;
+		I_HL        : in  std_logic_vector(15 downto 0);
+		 -- clks
+		I_CPU_ENA 	: in  std_logic; -- cpu clock ena
+		ENA       	: in  std_logic; 
+		CLK       	: in  std_logic
+	);
+	END COMPONENT;
+
+	--  signals
   signal cpu_ena          : std_logic;
   signal pix_ena          : std_logic;
   signal cpu_ena_gated    : std_logic;
@@ -407,8 +456,10 @@ begin
       );
 
   -- Pattern board does not touch, so leave as CPU info for now.
-  u_io   : entity work.BALLY_IO
+  u_io1  : entity work.BALLY_IO
     port map (
+		I_BASE            => "0001", -- Base Address of chip
+		
       I_MXA             => cpu_addr,
       I_MXD             => cpu_data_out,
       O_MXD             => mx_io,
@@ -429,8 +480,7 @@ begin
       I_POT_DATA        => I_POT,
 
       -- audio
-      O_AUDIO_L         => O_AUDIO_L,
-		O_AUDIO_R         => O_AUDIO_R,
+      O_AUDIO           => O_AUDIO_L,
 
       -- clks
       I_CPU_ENA         => cpu_ena,
@@ -439,6 +489,40 @@ begin
       CLK               => CLK
       );
 
+  -- Second IO chip (for Stereo games)
+  u_io2  : entity work.BALLY_IO
+    port map (
+		I_BASE            => "0101", -- Base Address of chip
+		
+      I_MXA             => cpu_addr,
+      I_MXD             => cpu_data_out,
+      O_MXD             => open,
+      O_MXD_OE_L        => open,
+
+      -- cpu control signals
+      I_M1_L            => cpu_m1_l,
+      I_RD_L            => cpu_rd_l,
+      I_IORQ_L          => cpu_iorq_l,
+      I_RESET_L         => I_RESET_L,
+
+      -- no pots - student project ? :)
+
+      -- switches
+      O_SWITCH          => open,
+      I_SWITCH          => x"00",
+      O_POT_SEL         => open,
+      I_POT_DATA        => x"00",
+
+      -- audio
+      O_AUDIO           => O_AUDIO_R,
+
+      -- clks
+      I_CPU_ENA         => cpu_ena,
+      I_PIX_ENA         => pix_ena, -- real chip doesn't get pixel clock
+      ENA               => ENA,
+      CLK               => CLK
+      );
+		
   PCB : entity work.BALLY_PATTERN
     port map (
       I_MXA             => cpu_addr,
@@ -694,8 +778,8 @@ begin
  O_SAMP_ADDR <= SW_Sampl_A when I_SEAWOLF='1' else GF_Sampl_A;
  O_SAMP_READ <= SW_Read    when I_SEAWOLF='1' else GF_Read;
  O_SAMP_BUSY <= GF_Votrax;
-		
- seasound : entity work.SeawolfSound
+ 
+ seasound : SeawolfSound
    port map (
 		cpu_addr  	=> cpu_addr,
 		cpu_data  	=> cpu_data_out,
@@ -704,6 +788,7 @@ begin
 		s_addr    	=> SW_Sampl_A,
 		s_data    	=> I_SAMP_DATA,
 		s_read    	=> SW_Read,
+		s_ready     => I_SAMP_READY,
 		-- Sounds
 		audio_out_l => SW_Sampl_L,
 		audio_out_r => SW_Sampl_R,
@@ -718,7 +803,7 @@ begin
 		CLK         => CLK
 	);
 	
-gorfvotrax : entity work.GorfSound
+ gorfvotrax : GorfSound
    port map (
 		I_MXA     	=> cpu_addr,
 		-- Sample Info
@@ -726,6 +811,7 @@ gorfvotrax : entity work.GorfSound
 		s_addr    	=> GF_Sampl_A,
 		s_data    	=> I_SAMP_DATA,
 		s_read    	=> GF_Read,
+		s_ready     => I_SAMP_READY,
 		-- Sounds
 		audio_out_l => GF_Sampl_L,
 		audio_out_r => GF_Sampl_R,
@@ -741,6 +827,5 @@ gorfvotrax : entity work.GorfSound
 		ENA         => ENA,
 		CLK         => CLK
 	);
-	
-	
+		
 end RTL;

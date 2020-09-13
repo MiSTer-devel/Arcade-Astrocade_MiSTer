@@ -5,9 +5,24 @@
 -- V 1.0 30/03/2020
 -- V 1.1 06/04/2020
 -- V 1.2 03/05/2020
+-- V 1.3 13/09/2020 - Memory changes for Cabinet version
+--                  - Sound chip now matches documentation (and sounds better)
 -- 
 ------------------------------------------------------------------------------------
 -- From FPGA implementation of the Bally Astrocade based on a project by MikeJ et al
+------------------------------------------------------------------------------------
+--
+-- Important info regarding Frame Buffer (FB)
+--
+-- Depending upon the setting of FB when this core is built, the samples (for Seawolf II 
+-- and Gorf with speech) will use DDRAM or SDRAM. 
+--
+-- If FB is not defined, then the games will work on a bare DE10-Nano as they do not 
+-- use SDRAM for any purpose but the screen will not rotate - only affects Gorf
+--
+-- IF FB is defined then the DDRAM is used for the screen rotation for HDMI so the samples
+-- will use SDRAM instead.
+--
 ------------------------------------------------------------------------------------
 --
 -- Notes (on what does and doesn't work!)
@@ -54,8 +69,6 @@
 -- ----
 -- SC-01A speech implemented using samples
 ---------------------------------------------------------------------------------
-
-                                *** Attention ***
 
                                 *** Attention ***
 

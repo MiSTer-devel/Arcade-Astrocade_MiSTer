@@ -62,11 +62,11 @@ module emu
 	inout  [45:0] HPS_BUS,
 
 	//Base video clock. Usually equals to CLK_SYS.
-	output        VGA_CLK,
+	output        CLK_VIDEO,
 
 	//Multiple resolutions are supported using different VGA_CE rates.
 	//Must be based on CLK_VIDEO
-	output        VGA_CE,
+	output        CE_PIXEL,
 
 	output  [7:0] VGA_R,
 	output  [7:0] VGA_G,
@@ -75,6 +75,7 @@ module emu
 	output        VGA_VS,
 	output        VGA_DE,    // = ~(VBlank | HBlank)
 	output        VGA_F1,
+   output [1:0]  VGA_SL,
 
 	//Base video clock. Usually equals to CLK_SYS.
 	output        HDMI_CLK,
@@ -92,8 +93,25 @@ module emu
 	output  [1:0] HDMI_SL,   // scanlines fx
 
 	//Video aspect ratio for HDMI. Most retro systems have ratio 4:3.
-	output  [7:0] HDMI_ARX,
-	output  [7:0] HDMI_ARY,
+	output  [7:0] VIDEO_ARX,
+	output  [7:0] VIDEO_ARY,
+
+	// Use framebuffer from DDRAM (USE_FB=1 in qsf)
+	// FB_FORMAT:
+	//    [2:0] : 011=8bpp(palette) 100=16bpp 101=24bpp 110=32bpp
+	//    [3]   : 0=16bits 565 1=16bits 1555
+	//    [4]   : 0=RGB  1=BGR (for 16/24/32 modes)
+	//
+	// FB_STRIDE either 0 (rounded to 256 bytes) or multiple of 16 bytes.
+
+	output        FB_EN,
+	output  [4:0] FB_FORMAT,
+	output [11:0] FB_WIDTH,
+	output [11:0] FB_HEIGHT,
+	output [31:0] FB_BASE,
+	output [13:0] FB_STRIDE,
+	input         FB_VBL,
+	input         FB_LL,
 
 	output        LED_USER,  // 1 - ON, 0 - OFF.
 
@@ -103,6 +121,7 @@ module emu
 	output  [1:0] LED_POWER,
 	output  [1:0] LED_DISK,
 
+   input         CLK_AUDIO, // 24.576 MHz
 	output [15:0] AUDIO_L,
 	output [15:0] AUDIO_R,
 	output        AUDIO_S,    // 1 - signed audio samples, 0 - unsigned
@@ -117,6 +136,19 @@ module emu
 	input         SD_MISO,
 	output        SD_CS,
 	input         SD_CD,
+
+	//High latency DDR3 RAM interface
+	//Use for non-critical time purposes
+	output        DDRAM_CLK,
+	input         DDRAM_BUSY,
+	output  [7:0] DDRAM_BURSTCNT,
+	output [28:0] DDRAM_ADDR,
+	input  [63:0] DDRAM_DOUT,
+	input         DDRAM_DOUT_READY,
+	output        DDRAM_RD,
+	output [63:0] DDRAM_DIN,
+	output  [7:0] DDRAM_BE,
+	output        DDRAM_WE,
 	
 	//SDRAM interface with lower latency
 	output        SDRAM_CLK,
@@ -161,8 +193,8 @@ assign LED_USER  = ioctl_download;
 assign LED_DISK  = 0;
 assign LED_POWER = 0;
 
-assign HDMI_ARX = status[1] ? 8'd16 : status[2] ? 8'd4 : 8'd3;
-assign HDMI_ARY = status[1] ? 8'd9  : status[2] ? 8'd3 : 8'd4;
+assign VIDEO_ARX = status[1] ? 8'd16 : status[2] ? 8'd4 : 8'd3;
+assign VIDEO_ARY = status[1] ? 8'd9  : status[2] ? 8'd3 : 8'd4;
 
 `include "build_id.v" 
 
@@ -184,14 +216,14 @@ localparam CONF_STR = {
 
 wire clk_sys, clk_snd;
 wire pll_locked;
-wire CLK_VIDEO;
+wire MY_CLK_VIDEO;
 
 pll pll
 (
 	.refclk(CLK_50M),
 	.rst(0),
 	.outclk_0(clk_sys),
-	.outclk_1(CLK_VIDEO),
+	.outclk_1(MY_CLK_VIDEO),
 	.outclk_2(clk_snd),
 	.locked(pll_locked)
 );
@@ -219,6 +251,7 @@ wire        ioctl_wr;
 wire [24:0] ioctl_addr;
 wire [15:0] ioctl_dout;
 wire  [7:0] ioctl_index;
+wire			ioctl_wait;
 
 wire [15:0] joystick_0,joystick_1,joystick_a0,joystick_a1;
 
@@ -241,7 +274,8 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 	.ioctl_addr(ioctl_addr),
 	.ioctl_dout(ioctl_dout),
 	.ioctl_index(ioctl_index),
-
+	.ioctl_wait(ioctl_wait),
+	
 	.joystick_0(joystick_0),
 	.joystick_1(joystick_1),
 	.joystick_analog_0(joystick_a0),
@@ -419,6 +453,8 @@ wire [15:0] sample_r;
 wire [23:0] wave_addr;
 wire [15:0] wave_data;
 wire        wave_rd;	
+//wire        wav_want_byte;
+wire        wav_data_ready;
 wire        Votrax_Status;
 
 // combine speech and SFX (speech seems much louder, so turn it down in comparison to SFX)
@@ -428,20 +464,63 @@ wire [15:0] Sum_R = {1'd0, audio_r, audio_r[7:1]} + {2'd0,sample_r[15:2]};
 assign AUDIO_L = OnlySamples ? sample_l : PlusSamples ? Sum_L : {audio_l, audio_l};
 assign AUDIO_R = OnlySamples ? sample_r : PlusSamples ? Sum_R : Stereo ? {audio_r, audio_r} : {audio_l, audio_l};
 
-sdram sdram
-(
-	.*,
-	.init(~pll_locked),
-	.clk(clk_snd),
+`ifdef USE_FB
 
-	.addr(ioctl_download ? ioctl_addr : {1'b0,wave_addr}),
-	.we(ioctl_download && ioctl_wr && (ioctl_index==2)),
-	.rd(~ioctl_download & wave_rd),
-	.din(ioctl_dout),
-	.dout(wave_data),
+	// If frame buffer is being used, then samples are in SDRAM
 
-	.ready()
-);
+	sdram sdram
+	(
+		.*,
+		.init(~pll_locked),
+		.clk(clk_snd),
+
+		.addr(ioctl_download ? ioctl_addr : {1'b0,wave_addr}),
+		.we(ioctl_download && ioctl_wr && (ioctl_index==2)),
+		.rd(~ioctl_download & wave_rd),
+		.din(ioctl_dout),
+		.dout(wave_data),
+
+		.ready()
+	);
+
+`else
+
+	// frame buffer not used, then samples are in DDRAM
+
+	wire wav_load = ioctl_download && (ioctl_index == 2);	
+	reg  wav_wr;
+
+	assign DDRAM_CLK = MY_CLK_VIDEO;  // Interleave commands with sample modules
+	ddram ddram
+	(
+		.*,
+		.addr(wav_load ? ioctl_addr : {4'd0,wave_addr}),
+		.dout(wave_data[7:0]),
+		.din(ioctl_dout),
+		.we(wav_wr),
+		.rd(wave_rd),
+		.ready(wav_data_ready)
+	);
+
+	//  signals for DDRAM
+
+	always @(posedge clk_sys) begin
+		reg old_reset;
+
+		old_reset <= reset;
+		if(~old_reset && reset) ioctl_wait <= 0;
+
+		wav_wr <= 0;
+		if(ioctl_wr & wav_load) begin
+			ioctl_wait <= 1;
+			wav_wr <= 1;
+		end
+		else if(~wav_wr & ioctl_wait & wav_data_ready) begin
+			ioctl_wait <= 0;
+		end
+	end
+
+`endif
 
 ////////////////////////////  VIDEO  ////////////////////////////////////
 
@@ -471,11 +550,11 @@ assign VGA_F1 = 0;
 //actual: 0-225, 0-238
 //quoted: 160/320, 102/204
 
-arcade_video #(360,240,12) arcade_video
+arcade_video #(.WIDTH(360), .DW(12)) arcade_video
 (
         .*,
 
-        .clk_video(CLK_VIDEO),
+        .clk_video(MY_CLK_VIDEO),
         .ce_pix(ce_pix),
 
         .RGB_in({O_R,O_G,O_B}),
@@ -484,12 +563,23 @@ arcade_video #(360,240,12) arcade_video
         .HSync(hs),
         .VSync(vs),
 
-		  .rotate_ccw(1),
-		  
         .fx(status[5:3]),
-		  .forced_scandoubler(forced_scandoubler),
-        .no_rotate(status[2])
+		  .forced_scandoubler(forced_scandoubler)
 );
+
+
+// Only need screen rotate if FB is set
+`ifdef USE_FB
+
+screen_rotate screen_rotate
+(
+		  .*,
+		  .rotate_ccw(1),
+		  .no_rotate(status[2])
+);
+
+`endif
+
 
 BALLY bally
 (
@@ -526,6 +616,7 @@ BALLY bally
 	.O_SAMP_READ    (wave_rd),
 	.I_SAMP_DATA    (wave_data),
 	.O_SAMP_BUSY    (Votrax_Status),
+	.I_SAMP_READY   (wav_data_ready),
 
 	// BIOS
 	.O_BIOS_ADDR    (bios_addr),
@@ -534,7 +625,7 @@ BALLY bally
 
 	// Input
 	.O_SWITCH_COL   (col_select), //    : out   std_logic_vector(7 downto 0);
-	.I_SWITCH_ROW   (row_data), //    : in    std_logic_vector(7 downto 0);
+	.I_SWITCH_ROW   (row_data),   //    : in    std_logic_vector(7 downto 0);
 	.O_POT          (pot_select),
 	.I_POT          (pot_data),
 	.O_TRACK_S      (track_select), // eBases trackball axis select
@@ -579,7 +670,7 @@ dpram #(15) rom  // 8000-CFFF (and D000-EFFF)
 
 reg [3:0] O_R,O_G,O_B;
 
-always @(posedge CLK_VIDEO) begin
+always @(posedge MY_CLK_VIDEO) begin
 	// Blank screen edges
 	if ((MyVCount >= 260) || (MyVCount <= 21) || (HCount <= 70)) begin
 		O_R <= 4'd0;
