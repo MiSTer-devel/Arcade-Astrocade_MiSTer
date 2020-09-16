@@ -78,64 +78,64 @@ architecture RTL of GorfSound_DDRAM is
 -- 26 - destroy.wav         1 11025 06EC58 07372C
 -- 27 - destroyd.wav        1 11025 07372E 078678
 -- 28 - devour.wav          1 11025 07867A 07BCE8
--- 29 - doom.wav            1 11025 07BCEA 07BCEC
--- 30 - draws.wav           1 11025 07BCEE 07DDE6
--- 31 - dust.wav            1 11025 07DDE8 080386
--- 32 - empire.wav          1 11025 080388 084ABE
--- 33 - end.wav             1 11025 084AC0 086C82
--- 34 - enemy.wav           1 11025 086C84 08A0DC
--- 35 - escape.wav          1 11025 08A0DE 08DBE0
--- 36 - flagship.wav        1 11025 08DBE2 093194
--- 37 - for.wav             1 11025 093196 095368
--- 38 - galactic.wav        1 11025 09536A 099D8C
--- 39 - galaxy.wav          1 11025 099D8E 09DD8A
--- 40 - general.wav         1 11025 09DD8C 0A1124
--- 41 - gorf.wav            1 11025 0A1126 0A4BE0
--- 42 - gorphian.wav        1 11025 0A4BE2 0A8984
--- 43 - gorphins.wav        1 11025 0A8986 0ACDC2
--- 44 - got.wav             1 11025 0ACDC4 0AEAEE
--- 45 - hahahahu.wav        1 11025 0AEAF0 0B4116
--- 46 - harder.wav          1 11025 0B4118 0B7240
--- 47 - have.wav            1 11025 0B7242 0B988A
--- 48 - hitting.wav         1 11025 0B988C 0BB3D6
--- 49 - i.wav               1 11025 0BB3D8 0BD69A
--- 50 - in.wav              1 11025 0BD69C 0BEF78
--- 51 - insert.wav          1 11025 0BEF7A 0C2A8E
--- 52 - long.wav            1 11025 0C2A90 0C7102
--- 53 - meet.wav            1 11025 0C7104 0C9B4C
--- 54 - move.wav            1 11025 0C9B4E 0CC9D2
--- 55 - my.wav              1 11025 0CC9D4 0CF434
--- 56 - near.wav            1 11025 0CF436 0D1782
--- 57 - next.wav            1 11025 0D1784 0D51B8
--- 58 - nice.wav            1 11025 0D51BA 0D7B0E
--- 59 - no.wav              1 11025 0D7B10 0D96D0
--- 60 - now.wav             1 11025 0D96D2 0DC8AA
--- 61 - pause.wav           1 11025 0DC8AC 0DC8AE
--- 62 - player.wav          1 11025 0DC8B0 0DF03A
--- 63 - prepare.wav         1 11025 0DF03C 0E7686
--- 64 - prisonrs.wav        1 11025 0E7688 0EBE44
--- 65 - promoted.wav        1 11025 0EBE46 0EFDEE
--- 66 - push.wav            1 11025 0EFDF0 0F1C04
--- 67 - robot.wav           1 11025 0F1C06 0F1C08
--- 68 - robots.wav          1 11025 0F1C0A 0F1C0C
--- 69 - seek.wav            1 11025 0F1C0E 0F1C10
--- 70 - ship.wav            1 11025 0F1C12 0F41F4
--- 71 - shot.wav            1 11025 0F41F6 0F6854
--- 72 - some.wav            1 11025 0F6856 0F8B2A
--- 73 - space.wav           1 11025 0F8B2C 0FBE0C
--- 74 - spause.wav          1 11025 0FBE0E 0FBE10
--- 75 - survival.wav        1 11025 0FBE12 107D3A
--- 76 - take.wav            1 11025 107D3C 10984E
--- 77 - the.wav             1 11025 109850 10AADA
--- 78 - time.wav            1 11025 10AADC 10BC96
--- 79 - to.wav              1 11025 10BC98 10CE7E
--- 80 - try.wav             1 11025 10CE80 10F572
--- 81 - unbeatab.wav        1 11025 10F574 114648
--- 82 - warrior.wav         1 11025 11464A 11464C
--- 83 - warriors.wav        1 11025 11464E 1191FA
--- 84 - will.wav            1 11025 1191FC 11B4DE
--- 85 - you.wav             1 11025 11B4E0 11D38A
--- 86 - your.wav            1 11025 11D38C 11F314
+-- 29 - doom.wav            1 11025 07BCEA 07E6B6
+-- 30 - draws.wav           1 11025 07E6B8 0807B0
+-- 31 - dust.wav            1 11025 0807B2 082D50
+-- 32 - empire.wav          1 11025 082D52 087488
+-- 33 - end.wav             1 11025 08748A 08964C
+-- 34 - enemy.wav           1 11025 08964E 08CAA6
+-- 35 - escape.wav          1 11025 08CAA8 0905AA
+-- 36 - flagship.wav        1 11025 0905AC 095B5E
+-- 37 - for.wav             1 11025 095B60 097D32
+-- 38 - galactic.wav        1 11025 097D34 09C756
+-- 39 - galaxy.wav          1 11025 09C758 0A0754
+-- 40 - general.wav         1 11025 0A0756 0A3AEE
+-- 41 - gorf.wav            1 11025 0A3AF0 0A75AA
+-- 42 - gorphian.wav        1 11025 0A75AC 0AB34E
+-- 43 - gorphins.wav        1 11025 0AB350 0AF78C
+-- 44 - got.wav             1 11025 0AF78E 0B14B8
+-- 45 - hahahahu.wav        1 11025 0B14BA 0B6AE0
+-- 46 - harder.wav          1 11025 0B6AE2 0B9C0A
+-- 47 - have.wav            1 11025 0B9C0C 0BC254
+-- 48 - hitting.wav         1 11025 0BC256 0BF8EC
+-- 49 - i.wav               1 11025 0BF8EE 0C1BB0
+-- 50 - in.wav              1 11025 0C1BB2 0C348E
+-- 51 - insert.wav          1 11025 0C3490 0C6FA4
+-- 52 - long.wav            1 11025 0C6FA6 0CB618
+-- 53 - meet.wav            1 11025 0CB61A 0CE062
+-- 54 - move.wav            1 11025 0CE064 0D0EE8
+-- 55 - my.wav              1 11025 0D0EEA 0D394A
+-- 56 - near.wav            1 11025 0D394C 0D5C98
+-- 57 - next.wav            1 11025 0D5C9A 0D96CE
+-- 58 - nice.wav            1 11025 0D96D0 0DC024
+-- 59 - no.wav              1 11025 0DC026 0DDBE6
+-- 60 - now.wav             1 11025 0DDBE8 0E0DC0
+-- 61 - pause.wav           1 11025 0E0DC2 0E0DC4
+-- 62 - player.wav          1 11025 0E0DC6 0E3550
+-- 63 - prepare.wav         1 11025 0E3552 0EBB9C
+-- 64 - prisonrs.wav        1 11025 0EBB9E 0F035A
+-- 65 - promoted.wav        1 11025 0F035C 0F4304
+-- 66 - push.wav            1 11025 0F4306 0F611A
+-- 67 - robot.wav           1 11025 0F611C 0F9B44
+-- 68 - robots.wav          1 11025 0F9B46 0FEADA
+-- 69 - seek.wav            1 11025 0FEADC 100AEA
+-- 70 - ship.wav            1 11025 100AEC 1030CE
+-- 71 - shot.wav            1 11025 1030D0 10572E
+-- 72 - some.wav            1 11025 105730 107A04
+-- 73 - space.wav           1 11025 107A06 10ACE6
+-- 74 - spause.wav          1 11025 10ACE8 10ACEA
+-- 75 - survival.wav        1 11025 10ACEC 116C14
+-- 76 - take.wav            1 11025 116C16 118728
+-- 77 - the.wav             1 11025 11872A 1199B4
+-- 78 - time.wav            1 11025 1199B6 11AB70
+-- 79 - to.wav              1 11025 11AB72 11BD58
+-- 80 - try.wav             1 11025 11BD5A 11E44C
+-- 81 - unbeatab.wav        1 11025 11E44E 123522
+-- 82 - warrior.wav         1 11025 123524 1285B0
+-- 83 - warriors.wav        1 11025 1285B2 12D15E
+-- 84 - will.wav            1 11025 12D160 12F442
+-- 85 - you.wav             1 11025 12F444 1312EE
+-- 86 - your.wav            1 11025 1312F0 133278
 -- 87 - None!
 
  -- wave start addresses in sdram 
@@ -143,28 +143,28 @@ architecture RTL of GorfSound_DDRAM is
 	x"000000",x"001A16",x"0066FE",x"025B1A",x"02817C",x"029AF0",x"02FD24",x"03391C",
 	x"035748",x"038AAC",x"03DB54",x"0401FA",x"041A88",x"0436E4",x"045E6A",x"047D1C",
 	x"04B08C",x"04DA0A",x"0502BC",x"0538A8",x"0586C4",x"05BBCC",x"05F3F2",x"0620F2",
-	x"064D62",x"06ABE8",x"06EC58",x"07372E",x"07867A",x"07BCEA",x"07BCEE",x"07DDE8",
-	x"080388",x"084AC0",x"086C84",x"08A0DE",x"08DBE2",x"093196",x"09536A",x"099D8E",
-	x"09DD8C",x"0A1126",x"0A4BE2",x"0A8986",x"0ACDC4",x"0AEAF0",x"0B4118",x"0B7242",
-	x"0B988C",x"0BB3D8",x"0BD69C",x"0BEF7A",x"0C2A90",x"0C7104",x"0C9B4E",x"0CC9D4",
-	x"0CF436",x"0D1784",x"0D51BA",x"0D7B10",x"0D96D2",x"0DC8AC",x"0DC8B0",x"0DF03C",
-	x"0E7688",x"0EBE46",x"0EFDF0",x"0F1C06",x"0F1C0A",x"0F1C0E",x"0F1C12",x"0F41F6",
-	x"0F6856",x"0F8B2C",x"0FBE0E",x"0FBE12",x"107D3C",x"109850",x"10AADC",x"10BC98",
-	x"10CE80",x"10F574",x"11464A",x"11464E",x"1191FC",x"11B4E0",x"11D38C",x"000000");
+	x"064D62",x"06ABE8",x"06EC58",x"07372E",x"07867A",x"07BCEA",x"07E6B8",x"0807B2",
+	x"082D52",x"08748A",x"08964E",x"08CAA8",x"0905AC",x"095B60",x"097D34",x"09C758",
+	x"0A0756",x"0A3AF0",x"0A75AC",x"0AB350",x"0AF78E",x"0B14BA",x"0B6AE2",x"0B9C0C",
+	x"0BC256",x"0BF8EE",x"0C1BB2",x"0C3490",x"0C6FA6",x"0CB61A",x"0CE064",x"0D0EEA",
+	x"0D394C",x"0D5C9A",x"0D96D0",x"0DC026",x"0DDBE8",x"0E0DC2",x"0E0DC6",x"0E3552",
+	x"0EBB9E",x"0F035C",x"0F4306",x"0F611C",x"0F9B46",x"0FEADC",x"100AEC",x"1030D0",
+	x"105730",x"107A06",x"10ACE8",x"10ACEC",x"116C16",x"11872A",x"1199B6",x"11AB72",
+	x"11BD5A",x"11E44E",x"123524",x"1285B2",x"12D160",x"12F444",x"1312F0",x"000000");
 
  -- wave end addresses in sdram 
  constant snd_stops : snd_addr_t := (
 	x"001A14",x"0066FC",x"025B18",x"02817A",x"029AEE",x"02FD22",x"03391A",x"035746",
 	x"038AAA",x"03DB52",x"0401F8",x"041A86",x"0436E2",x"045E68",x"047D1A",x"04B08A",
 	x"04DA08",x"0502BA",x"0538A6",x"0586C2",x"05BBCA",x"05F3F0",x"0620F0",x"064D60",
-	x"06ABE6",x"06EC56",x"07372C",x"078678",x"07BCE8",x"07BCEC",x"07DDE6",x"080386",
-	x"084ABE",x"086C82",x"08A0DC",x"08DBE0",x"093194",x"095368",x"099D8C",x"09DD8A",
-	x"0A1124",x"0A4BE0",x"0A8984",x"0ACDC2",x"0AEAEE",x"0B4116",x"0B7240",x"0B988A",
-	x"0BB3D6",x"0BD69A",x"0BEF78",x"0C2A8E",x"0C7102",x"0C9B4C",x"0CC9D2",x"0CF434",
-	x"0D1782",x"0D51B8",x"0D7B0E",x"0D96D0",x"0DC8AA",x"0DC8AE",x"0DF03A",x"0E7686",
-	x"0EBE44",x"0EFDEE",x"0F1C04",x"0F1C08",x"0F1C0C",x"0F1C10",x"0F41F4",x"0F6854",
-	x"0F8B2A",x"0FBE0C",x"0FBE10",x"107D3A",x"10984E",x"10AADA",x"10BC96",x"10CE7E",
-	x"10F572",x"114648",x"11464C",x"1191FA",x"11B4DE",x"11D38A",x"11F314",x"000000");
+	x"06ABE6",x"06EC56",x"07372C",x"078678",x"07BCE8",x"07E6B6",x"0807B0",x"082D50",
+	x"087488",x"08964C",x"08CAA6",x"0905AA",x"095B5E",x"097D32",x"09C756",x"0A0754",
+	x"0A3AEE",x"0A75AA",x"0AB34E",x"0AF78C",x"0B14B8",x"0B6AE0",x"0B9C0A",x"0BC254",
+	x"0BF8EC",x"0C1BB0",x"0C348E",x"0C6FA4",x"0CB618",x"0CE062",x"0D0EE8",x"0D394A",
+	x"0D5C98",x"0D96CE",x"0DC024",x"0DDBE6",x"0E0DC0",x"0E0DC4",x"0E3550",x"0EBB9C",
+	x"0F035A",x"0F4304",x"0F611A",x"0F9B44",x"0FEADA",x"100AEA",x"1030CE",x"10572E",
+	x"107A04",x"10ACE6",x"10ACEA",x"116C14",x"118728",x"1199B4",x"11AB70",x"11BD58",
+	x"11E44C",x"123522",x"1285B0",x"12D15E",x"12F442",x"1312EE",x"133278",x"000000");
 	
  -- sound playing
  signal snd_starteds : std_logic := '0'; 
