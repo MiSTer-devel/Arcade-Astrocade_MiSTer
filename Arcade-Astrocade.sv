@@ -189,9 +189,10 @@ assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 assign AUDIO_S   = mod_seawolf2; // signed - seawolf 2, unsigned others
 assign AUDIO_MIX = 2'd0;
 
-assign LED_USER  = ioctl_download;	
-assign LED_DISK  = 0;
-assign LED_POWER = 0;
+// Use in Gorf to drive rank lights (1-6 = rank lights, 7 = joystick on/off ?)
+assign LED_USER  = B1_U; // ioctl_download;	
+assign LED_DISK  = {1'd1,B1_D}; // 0;
+assign LED_POWER = {1'd1,B1_L}; // 0;
 
 assign VIDEO_ARX = status[1] ? 8'd16 : status[2] ? 8'd4 : 8'd3;
 assign VIDEO_ARY = status[1] ? 8'd9  : status[2] ? 8'd3 : 8'd4;
@@ -711,6 +712,27 @@ always @(posedge MY_CLK_VIDEO) begin
 				end
 			end
 		end		
+			
+		// Allow mono mode for Space Zap
+		if (mod_spacezap) begin
+			if (sw[0][1] == 1'd1) begin
+				if ((G == 4'd15) && (B == 4'd4)) begin
+					O_R <= 4'd14;
+					O_G <= 4'd14;
+					O_B <= 4'd14;
+				end
+				if (B == 4'd11) begin
+					O_R <= 4'd10;
+					O_G <= 4'd10;
+					O_B <= 4'd10;
+				end
+				if (G == 4'd04) begin
+					O_R <= 4'd8;
+					O_G <= 4'd8;
+					O_B <= 4'd8;
+				end
+			end
+		end
 	end
 end
 

@@ -9,6 +9,7 @@
 	<category>Space / Shooter</category>
 	<rbf>astrocade</rbf>
 	<switches default="00,00,03,FF">
+		<dip bits="01"    name="Monitor" ids="Colour,Mono"/>
 		<dip bits="16"    name="Cabinet" ids="Cocktail,Upright"/>
 		<dip bits="17"    name="Service" ids="On,Off"/>
 		<dip bits="25,26" name="Coinage" ids="1c/5cr,1c/3cr,2c/1cr,1c/1cr"/>
