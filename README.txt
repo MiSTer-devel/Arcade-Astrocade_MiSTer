@@ -7,6 +7,7 @@
 -- V 1.2 03/05/2020
 -- V 1.3 13/09/2020 - Memory changes for Cabinet version
 --                  - Sound chip now matches documentation (and sounds better)
+-- V 1.4 18/10/2020 - WOW Speech added - Reggs
 -- 
 ------------------------------------------------------------------------------------
 -- From FPGA implementation of the Bally Astrocade based on a project by MikeJ et al
@@ -59,7 +60,7 @@
 -- digital is implemented as directions and two fire buttons. (as per Mame)
 -- analogue should do the same as the real game.
 --
--- No SC-01A speech chip implemented.
+-- SC-01A speech implemented using full sentences recorded as samples
 --
 -- Robby Roto
 -- ----------
