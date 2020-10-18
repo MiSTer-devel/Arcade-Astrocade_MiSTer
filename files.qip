@@ -14,10 +14,12 @@ set_global_assignment -name VHDL_FILE rtl/ebases_control.vhd
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/gorf_samples.sv
 set_global_assignment -name VHDL_FILE rtl/gorf_samples_S.vhd
 set_global_assignment -name VHDL_FILE rtl/gorf_samples_D.vhd
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/wow_samples.sv
+set_global_assignment -name VHDL_FILE rtl/wow_samples_S.vhd
+set_global_assignment -name VHDL_FILE rtl/wow_samples_D.vhd
 set_global_assignment -name VHDL_FILE rtl/seawolf_gray_binary.vhd
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/seawolf_samples.sv
 set_global_assignment -name VHDL_FILE rtl/seawolf_samples_S.vhd
 set_global_assignment -name VHDL_FILE rtl/seawolf_samples_D.vhd
 set_global_assignment -name VHDL_FILE rtl/wow_control.vhd
 set_global_assignment -name SYSTEMVERILOG_FILE "Arcade-Astrocade.sv"
-#set_global_assignment -name VHDL_FILE rtl/Astrocade_Chip.vhd

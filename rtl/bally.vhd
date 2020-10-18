@@ -50,7 +50,7 @@ library ieee;
 entity BALLY is
   port (
     O_AUDIO_L          : out   std_logic_vector(7 downto 0);
-	 O_AUDIO_R          : out   std_logic_vector(7 downto 0);
+	O_AUDIO_R          : out   std_logic_vector(7 downto 0);
 
     O_VIDEO_R          : out   std_logic_vector(3 downto 0);
     O_VIDEO_G          : out   std_logic_vector(3 downto 0);
@@ -69,12 +69,13 @@ entity BALLY is
 	 O_VCOUNT           : out   std_logic_vector(10 downto 0);
 
 	 -- Arcade Rom
-	 I_HIGH_ROM			  : in    std_logic; -- ROM at 8000-CFFF ?
- 	 I_EXTRA_ROM	     : in    std_logic; -- ROM at D000-DFFF ?
+	 I_HIGH_ROM			: in    std_logic; -- ROM at 8000-CFFF ?
+ 	 I_EXTRA_ROM	    : in    std_logic; -- ROM at D000-DFFF ?
 	 I_SPARKLE          : in    std_logic; -- Sparkle Circuit
 	 I_LIGHTPEN         : in    std_logic; -- Light pen interrupt
 	 I_GORF             : in    std_logic; -- Gorf (seperate RAM access for CPU opcodes) and Samples for Votrax
 	 I_SEAWOLF          : in    std_logic; -- SeaWolf samples
+	 I_WOW          	: in    std_logic; -- WOW samples
 
 	 O_SAMP_L           : out   std_logic_vector(15 downto 0);
 	 O_SAMP_R           : out   std_logic_vector(15 downto 0);
@@ -83,7 +84,7 @@ entity BALLY is
 	 I_SAMP_DATA        : in    std_logic_vector(15 downto 0);
 	 O_SAMP_BUSY        : out   std_logic;
 	 I_SAMP_READY       : in    std_logic; -- DDRAM use only
-	 
+  
     O_BIOS_ADDR        : out   std_logic_vector(15 downto 0);
     I_BIOS_DATA        : in    std_logic_vector( 7 downto 0);
     O_BIOS_CS_L        : out   std_logic;
@@ -132,6 +133,31 @@ architecture RTL of BALLY is
 		s_data    	: in  std_logic_vector(15 downto 0);
 		s_read    	: out std_logic;
 		s_ready     : in  std_logic;
+		-- Sounds out
+		audio_out_l : out std_logic_vector(15 downto 0);
+		audio_out_r : out std_logic_vector(15 downto 0);
+		votrax      : out std_logic;     
+		-- cpu
+		I_MXA    	: in  std_logic_vector(15 downto 0);
+		I_RESET_L 	: in  std_logic;
+		I_M1_L    	: in  std_logic;
+		I_RD_L    	: in  std_logic;
+		I_IORQ_L  	: in  std_logic;
+		I_HL        : in  std_logic_vector(15 downto 0);
+		 -- clks
+		I_CPU_ENA 	: in  std_logic; -- cpu clock ena
+		ENA       	: in  std_logic; 
+		CLK       	: in  std_logic
+	);
+	END COMPONENT;
+
+	COMPONENT WoWSound PORT (
+		s_enable  	: in  std_logic;
+		s_addr    	: out std_logic_vector(23 downto 0);
+		s_data    	: in  std_logic_vector(15 downto 0);
+		s_read    	: out std_logic;
+		s_ready     : in  std_logic;
+		
 		-- Sounds out
 		audio_out_l : out std_logic_vector(15 downto 0);
 		audio_out_r : out std_logic_vector(15 downto 0);
@@ -242,7 +268,11 @@ architecture RTL of BALLY is
   signal SW_Read          : std_logic;
   signal GF_Read          : std_logic;
   signal GF_Votrax        : std_logic;
-  
+  signal WOW_Sampl_L      : std_logic_vector(15 downto 0);
+  signal WOW_Sampl_R      : std_logic_vector(15 downto 0);
+  signal WOW_Sampl_A      : std_logic_vector(23 downto 0);
+  signal WOW_Read         : std_logic;
+  signal WOW_Votrax       : std_logic;
 begin
   --
   -- cpu
@@ -288,7 +318,7 @@ begin
               A       => cpu_addr,
               DI      => cpu_data_in,
               DO      => cpu_data_out,
-				  HL      => cpu_hl
+				  HL      => cpu_hl -- Required for speech
   );
 
 				
@@ -308,7 +338,7 @@ begin
   --
   -- primary addr decode
   --
-  p_mem_decode_comb : process(mux_rfsh_l, mux_rd_l, mux_mr_l, addr_bus, I_EXTRA_ROM,I_HIGH_ROM,I_GORF,cpu_addr)
+  p_mem_decode_comb : process(mux_rfsh_l, mux_rd_l, mux_mr_l, addr_bus, I_EXTRA_ROM,I_HIGH_ROM,I_GORF,I_WOW, cpu_addr)
     variable decode : std_logic;
   begin
 
@@ -458,7 +488,7 @@ begin
   -- Pattern board does not touch, so leave as CPU info for now.
   u_io1  : entity work.BALLY_IO
     port map (
-		I_BASE            => "0001", -- Base Address of chip
+	  I_BASE            => "0001", -- Base Address of chip
 		
       I_MXA             => cpu_addr,
       I_MXD             => cpu_data_out,
@@ -492,7 +522,7 @@ begin
   -- Second IO chip (for Stereo games)
   u_io2  : entity work.BALLY_IO
     port map (
-		I_BASE            => "0101", -- Base Address of chip
+	  I_BASE            => "0101", -- Base Address of chip
 		
       I_MXA             => cpu_addr,
       I_MXD             => cpu_data_out,
@@ -529,11 +559,11 @@ begin
       I_MXD             => pat_data_i,
 
 		-- Pattern board outputs
-		O_MXA					=> pat_addr,
-		O_MXD					=> pat_data_o,
-		O_RD_L            => pat_RD_L,
-		O_WR_L            => open,
-		O_MR_L            => pat_MR_L,
+		O_MXA			=> pat_addr,
+		O_MXD			=> pat_data_o,
+		O_RD_L          => pat_RD_L,
+		O_WR_L          => open,
+		O_MR_L          => pat_MR_L,
 
       -- cpu control signals
       I_M1_L            => cpu_m1_l,
@@ -542,8 +572,8 @@ begin
       I_IORQ_L          => cpu_iorq_l,
       I_RESET_L         => I_RESET_L,
       I_WAIT_L          => cpu_wait_l,
-		I_BUSACK_L        => cpu_busak_l,
- 		O_BUSRQ_L         => cpu_busrq_l,
+	  I_BUSACK_L        => cpu_busak_l,
+ 	  O_BUSRQ_L         => cpu_busrq_l,
 
 		-- clks
       I_CPU_ENA         => cpu_ena_gated, -- cpu clock ena
@@ -567,7 +597,7 @@ begin
 	 -- Screen Info
 	I_SCREENSTART     => vsync,
 	I_CODE            => serial,
-   O_LUMA            => luma,
+    O_LUMA            => luma,
 	-- clks
 	I_CPU_ENA         => cpu_ena, -- cpu clock ena
 	ENA               => ENA,
@@ -773,12 +803,35 @@ begin
 	 PAT_DATA => patram
     );
 
- O_SAMP_L    <= SW_Sampl_L when I_SEAWOLF='1' else GF_Sampl_L;
- O_SAMP_R    <= SW_Sampl_R when I_SEAWOLF='1' else GF_Sampl_R;
- O_SAMP_ADDR <= SW_Sampl_A when I_SEAWOLF='1' else GF_Sampl_A;
- O_SAMP_READ <= SW_Read    when I_SEAWOLF='1' else GF_Read;
- O_SAMP_BUSY <= GF_Votrax;
- 
+  select_samples : process
+  begin
+    wait until rising_edge(CLK);
+    if (ENA = '1') then
+		if I_SEAWOLF  ='1' then 
+			O_SAMP_L 	<= SW_Sampl_L; 
+			O_SAMP_R 	<= SW_Sampl_R;
+			O_SAMP_ADDR <= SW_Sampl_A;
+			O_SAMP_READ <= SW_Read;
+		end if;
+
+		if I_GORF  ='1' then 
+			O_SAMP_L 	<= GF_Sampl_L; 
+			O_SAMP_R 	<= GF_Sampl_R;
+			O_SAMP_ADDR <= GF_Sampl_A;
+			O_SAMP_READ <= GF_Read;
+			O_SAMP_BUSY <= GF_Votrax;
+		end if;
+
+		if I_WOW  ='1' then 
+			O_SAMP_L 	<= WOW_Sampl_L; 
+			O_SAMP_R 	<= WOW_Sampl_R;
+			O_SAMP_ADDR <= WOW_Sampl_A;
+			O_SAMP_READ <= WOW_Read;
+			O_SAMP_BUSY <= WOW_Votrax;
+		end if;
+	end if;
+	end process;
+
  seasound : SeawolfSound
    port map (
 		cpu_addr  	=> cpu_addr,
@@ -827,5 +880,32 @@ begin
 		ENA         => ENA,
 		CLK         => CLK
 	);
+
+ wowvotrax : WoWSound
+   port map (
+
+		I_MXA     	=> cpu_addr,
+		-- Sample Info
+		s_enable  	=> I_WOW,
+		s_addr    	=> WoW_Sampl_A,
+		s_data    	=> I_SAMP_DATA,
+		s_read    	=> WOW_Read,
+		s_ready     => I_SAMP_READY,
+		-- Sounds
+		audio_out_l => WOW_Sampl_L,
+		audio_out_r => WOW_Sampl_R,
+		votrax		=> WOW_Votrax,
+		-- cpu
+		I_RESET_L 	=> I_RESET_L,
+		I_M1_L    	=> cpu_m1_l,
+		I_RD_L    	=> cpu_rd_l,
+		I_IORQ_L  	=> cpu_iorq_l,
+		I_HL        => cpu_hl,
+		 -- clks
+		I_CPU_ENA   => cpu_ena,
+		ENA         => ENA,
+		CLK         => CLK
+	);
+
 		
 end RTL;

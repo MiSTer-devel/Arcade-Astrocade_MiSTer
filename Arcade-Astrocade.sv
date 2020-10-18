@@ -37,7 +37,8 @@
 // Wizard of Wor
 // ----------
 // Control mapping P2 (test digital)
-// SC01
+// SC01 done using samples for the moment. 
+// Full sentences recorded October 2020 - Reggs
 //===========================================================================
 // Robby Roto
 // ----------
@@ -75,7 +76,7 @@ module emu
 	output        VGA_VS,
 	output        VGA_DE,    // = ~(VBlank | HBlank)
 	output        VGA_F1,
-   output [1:0]  VGA_SL,
+    output [1:0]  VGA_SL,						
 
 	//Base video clock. Usually equals to CLK_SYS.
 	output        HDMI_CLK,
@@ -121,7 +122,7 @@ module emu
 	output  [1:0] LED_POWER,
 	output  [1:0] LED_DISK,
 
-   input         CLK_AUDIO, // 24.576 MHz
+    input         CLK_AUDIO, // 24.576 MHz
 	output [15:0] AUDIO_L,
 	output [15:0] AUDIO_R,
 	output        AUDIO_S,    // 1 - signed audio samples, 0 - unsigned
@@ -302,10 +303,10 @@ always @(posedge clk_sys) begin
 	reg [7:0] mod = 0;
 	if (ioctl_wr & (ioctl_index==1)) mod <= ioctl_dout[7:0];
 	
-	mod_ebase	   <= (mod == 1);
+	mod_ebase	    <= (mod == 1);
 	mod_seawolf2	<= (mod == 2);
 	mod_spacezap	<= (mod == 3);
-	mod_gorf			<= (mod == 4);
+	mod_gorf		<= (mod == 4);
 	mod_wow			<= (mod == 5);
 	mod_robby		<= (mod == 6);
 end
@@ -314,10 +315,10 @@ end
 wire Stereo    = mod_gorf | mod_wow | mod_robby;                // Two sound chips fitted
 wire Sparkle   = mod_wow | mod_gorf;                            // Sparkle circuit used
 wire LightPen  = mod_wow | mod_gorf;                            // Light pen interrupt used
-wire High_Rom  = ~mod_seawolf2;	                               // Seawolf2 has ram C000-CFFF, everything else 8000-CFFF is ROM
-wire Extra_Rom = mod_robby;  											    // Robby has ROM D000-EFFF as well
+wire High_Rom  = ~mod_seawolf2;	                                // Seawolf2 has ram C000-CFFF, everything else 8000-CFFF is ROM
+wire Extra_Rom = mod_robby;  									// Robby has ROM D000-EFFF as well
 wire OnlySamples = mod_seawolf2;                                // Uses samples but no sound chip
-wire PlusSamples = mod_gorf;											    // Uses samples AND sound chip
+wire PlusSamples = mod_gorf | mod_wow;							// Uses samples AND sound chip
 
 ////////////////////////////  INPUT  ////////////////////////////////////
 
@@ -459,8 +460,9 @@ wire        wav_data_ready;
 wire        Votrax_Status;
 
 // combine speech and SFX (speech seems much louder, so turn it down in comparison to SFX)
-wire [15:0] Sum_L = {1'd0, audio_l, audio_l[7:1]} + {2'd0,sample_l[15:2]}; 
-wire [15:0] Sum_R = {1'd0, audio_r, audio_r[7:1]} + {2'd0,sample_r[15:2]}; 
+// Also turn down WOW main audio as far louder than speech
+wire [15:0] Sum_L = {1'd0, audio_l, audio_l[7:2]} + {2'd0,sample_l[15:2]}; 
+wire [15:0] Sum_R = {1'd0, audio_r, audio_r[7:2]} + {2'd0,sample_r[15:2]}; 
 
 assign AUDIO_L = OnlySamples ? sample_l : PlusSamples ? Sum_L : {audio_l, audio_l};
 assign AUDIO_R = OnlySamples ? sample_r : PlusSamples ? Sum_R : Stereo ? {audio_r, audio_r} : {audio_l, audio_l};
@@ -609,6 +611,7 @@ BALLY bally
 	.I_LIGHTPEN     (LightPen),
 	.I_GORF         (mod_gorf),
 	.I_SEAWOLF      (mod_seawolf2),
+	.I_WOW          (mod_wow),
 
 	// Samples
 	.O_SAMP_L       (sample_l),
@@ -626,7 +629,7 @@ BALLY bally
 
 	// Input
 	.O_SWITCH_COL   (col_select), //    : out   std_logic_vector(7 downto 0);
-	.I_SWITCH_ROW   (row_data),   //    : in    std_logic_vector(7 downto 0);
+	.I_SWITCH_ROW   (row_data), //    : in    std_logic_vector(7 downto 0);
 	.O_POT          (pot_select),
 	.I_POT          (pot_data),
 	.O_TRACK_S      (track_select), // eBases trackball axis select
