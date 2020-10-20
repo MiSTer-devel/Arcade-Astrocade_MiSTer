@@ -191,9 +191,9 @@ assign AUDIO_S   = mod_seawolf2; // signed - seawolf 2, unsigned others
 assign AUDIO_MIX = 2'd0;
 
 // Use in Gorf to drive rank lights (1-6 = rank lights, 7 = joystick on/off ?)
-assign LED_USER  = B1_U; // ioctl_download;	
-assign LED_DISK  = {1'd1,B1_D}; // 0;
-assign LED_POWER = {1'd1,B1_L}; // 0;
+assign LED_USER  = ioctl_download;	
+assign LED_DISK  = 0;
+assign LED_POWER = 0;
 
 assign VIDEO_ARX = status[1] ? 8'd16 : status[2] ? 8'd4 : 8'd3;
 assign VIDEO_ARY = status[1] ? 8'd9  : status[2] ? 8'd3 : 8'd4;
@@ -497,11 +497,11 @@ assign AUDIO_R = OnlySamples ? sample_r : PlusSamples ? Sum_R : Stereo ? {audio_
 	ddram ddram
 	(
 		.*,
-		.addr(wav_load ? ioctl_addr : {4'd0,wave_addr}),
+		.addr(wav_load ? {3'd0,ioctl_addr} : {4'd0,wave_addr}),
 		.dout(wave_data[7:0]),
 		.din(ioctl_dout),
 		.we(wav_wr),
-		.rd(wave_rd),
+		.rd(~ioctl_download & wave_rd),
 		.ready(wav_data_ready)
 	);
 
@@ -521,6 +521,7 @@ assign AUDIO_R = OnlySamples ? sample_r : PlusSamples ? Sum_R : Stereo ? {audio_
 		else if(~wav_wr & ioctl_wait & wav_data_ready) begin
 			ioctl_wait <= 0;
 		end
+		
 	end
 
 `endif

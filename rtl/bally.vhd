@@ -803,35 +803,21 @@ begin
 	 PAT_DATA => patram
     );
 
-  select_samples : process
-  begin
-    wait until rising_edge(CLK);
-    if (ENA = '1') then
-		if I_SEAWOLF  ='1' then 
-			O_SAMP_L 	<= SW_Sampl_L; 
-			O_SAMP_R 	<= SW_Sampl_R;
-			O_SAMP_ADDR <= SW_Sampl_A;
-			O_SAMP_READ <= SW_Read;
-		end if;
-
-		if I_GORF  ='1' then 
-			O_SAMP_L 	<= GF_Sampl_L; 
-			O_SAMP_R 	<= GF_Sampl_R;
-			O_SAMP_ADDR <= GF_Sampl_A;
-			O_SAMP_READ <= GF_Read;
-			O_SAMP_BUSY <= GF_Votrax;
-		end if;
-
-		if I_WOW  ='1' then 
-			O_SAMP_L 	<= WOW_Sampl_L; 
-			O_SAMP_R 	<= WOW_Sampl_R;
-			O_SAMP_ADDR <= WOW_Sampl_A;
-			O_SAMP_READ <= WOW_Read;
-			O_SAMP_BUSY <= WOW_Votrax;
-		end if;
-	end if;
-	end process;
-
+	O_SAMP_L    <= SW_Sampl_L when I_SEAWOLF='1' else 
+	               GF_Sampl_L when I_GORF='1' else
+						WOW_Sampl_L;
+	O_SAMP_R    <= SW_Sampl_R when I_SEAWOLF='1' else 
+					   GF_Sampl_R when I_GORF='1' else
+						WOW_Sampl_R;
+	O_SAMP_ADDR <= SW_Sampl_A when I_SEAWOLF='1' else 
+	               GF_Sampl_A when I_GORF='1' else
+						WOW_Sampl_A;
+	O_SAMP_READ <= SW_Read    when I_SEAWOLF='1' else 
+	               GF_Read    when I_GORF='1' else
+						WOW_Read;
+	O_SAMP_BUSY <= GF_Votrax  when I_GORF='1' else
+						WOW_Votrax;
+	 
  seasound : SeawolfSound
    port map (
 		cpu_addr  	=> cpu_addr,
@@ -906,6 +892,5 @@ begin
 		ENA         => ENA,
 		CLK         => CLK
 	);
-
-		
+	
 end RTL;
