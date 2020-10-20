@@ -383,7 +383,7 @@ constant snd_stops : snd_addr_t := (
 				-- (stop / loop)
 				if snd_addrs >= snd_stops(snd_play) then 
 						snd_starteds <= '0';
-						snd_play <= 87;
+						snd_play <= 77;
 						audio <= (others => '0');
 				end if;
 				
