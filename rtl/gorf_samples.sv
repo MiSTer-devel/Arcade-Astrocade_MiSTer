@@ -4,27 +4,28 @@
 
 module GorfSound
 (
-   input  [15:0] 		I_MXA,
+   input            GORF1,
+   input  [15:0] 	I_MXA,
 
-   input             s_enable,
-   output [23:0] 		s_addr,
-   input  [15:0] 		s_data,
-	output				s_read,
-	input             s_ready,
+   input            s_enable,
+   output [23:0] 	s_addr,
+   input  [15:0] 	s_data,
+	output			s_read,
+	input           s_ready,
 
-   output [15:0] 		audio_out_l,
-   output [15:0] 		audio_out_r,
+   output [15:0] 	audio_out_l,
+   output [15:0] 	audio_out_r,
 	output         	votrax,
 
-   input             I_RESET_L,
-   input             I_M1_L,
-   input             I_RD_L,
-   input             I_IORQ_L,
-	input [15:0]      I_HL,
+   input            I_RESET_L,
+   input            I_M1_L,
+   input            I_RD_L,
+   input            I_IORQ_L,
+	input [15:0]    I_HL,
 
-   input             I_CPU_ENA,
-   input             ENA,
-   input             CLK
+   input            I_CPU_ENA,
+   input            ENA,
+   input            CLK
 );
 
 
@@ -34,6 +35,7 @@ module GorfSound
 
 	GorfSound_SDRAM GorfSound_SDRAM
 	(
+		.GORF1(GORF1),
 		.I_MXA(I_MXA),
 
 		.s_enable(s_enable),
@@ -62,6 +64,7 @@ module GorfSound
 
 	GorfSound_DDRAM GorfSound_DDRAM
 	(
+		.GORF1(GORF1),
 		.I_MXA(I_MXA),
 
 		.s_enable(s_enable),

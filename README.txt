@@ -8,6 +8,7 @@
 -- V 1.3 13/09/2020 - Memory changes for Cabinet version
 --                  - Sound chip now matches documentation (and sounds better)
 -- V 1.4 18/10/2020 - WOW Speech added - Reggs
+-- V 1.5 24/10/2020 - Gorf Program 1 added as an option (includes speech) - Reggs
 -- 
 ------------------------------------------------------------------------------------
 -- From FPGA implementation of the Bally Astrocade based on a project by MikeJ et al

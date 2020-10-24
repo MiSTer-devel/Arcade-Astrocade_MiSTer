@@ -49,6 +49,7 @@ library ieee;
 
 entity BALLY is
   port (
+	GORF1			   : in    std_logic; -- 0 = Gorf, 1 = Gorfprgm1
     O_AUDIO_L          : out   std_logic_vector(7 downto 0);
 	O_AUDIO_R          : out   std_logic_vector(7 downto 0);
 
@@ -128,6 +129,7 @@ architecture RTL of BALLY is
 	END COMPONENT;
 
 	COMPONENT GorfSound PORT (
+		GORF1  		: in  std_logic;
 		s_enable  	: in  std_logic;
 		s_addr    	: out std_logic_vector(23 downto 0);
 		s_data    	: in  std_logic_vector(15 downto 0);
@@ -665,7 +667,8 @@ begin
 --						O_VIDEO_B <= x"F";
 --					end if;
 					
-				when x"F02" | x"F00" =>		-- Gorf space invader Red / WoW Red
+--				when x"F02" | x"F00" =>		-- Gorf space invader Red / WoW Red
+				when x"F02" | x"F00"| x"F06" =>		-- Gorf space invader Red / WoW Red
 					case luma_t(3 downto 0) is
 						when "0000" => 
 							O_VIDEO_R <= "0000";
@@ -844,6 +847,7 @@ begin
 	
  gorfvotrax : GorfSound
    port map (
+		GORF1		=> GORF1,
 		I_MXA     	=> cpu_addr,
 		-- Sample Info
 		s_enable  	=> I_GORF,

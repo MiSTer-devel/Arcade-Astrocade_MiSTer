@@ -48,6 +48,7 @@
 // ----------
 // Control mapping P2
 // SC01 done using samples for the moment.
+// Oct 20 - Gorf Program 1 added as an option (includes speech)
 //===========================================================================
 
 module emu
@@ -298,6 +299,7 @@ reg mod_spacezap = 0;
 reg mod_gorf     = 0;
 reg mod_wow      = 0;
 reg mod_robby    = 0;
+reg mod_gorf1    = 0;
 
 always @(posedge clk_sys) begin
 	reg [7:0] mod = 0;
@@ -309,7 +311,15 @@ always @(posedge clk_sys) begin
 	mod_gorf		<= (mod == 4);
 	mod_wow			<= (mod == 5);
 	mod_robby		<= (mod == 6);
+	mod_gorf1		<= (mod == 7);
+
+	if (mod_gorf1) begin
+		mod_gorf	<= 1;
+		Gorf1 		<= 1;
+		end
 end
+
+
 
 // Game options
 wire Stereo    = mod_gorf | mod_wow | mod_robby;                // Two sound chips fitted
@@ -319,8 +329,8 @@ wire High_Rom  = ~mod_seawolf2;	                                // Seawolf2 has 
 wire Extra_Rom = mod_robby;  									// Robby has ROM D000-EFFF as well
 wire OnlySamples = mod_seawolf2;                                // Uses samples but no sound chip
 wire PlusSamples = mod_gorf | mod_wow;							// Uses samples AND sound chip
+reg  Gorf1 = 1'b0;												// Default is Gorf selected
 
-////////////////////////////  INPUT  ////////////////////////////////////
 
 wire [7:0] col_select;
 wire [7:0] row_data;
@@ -587,6 +597,7 @@ screen_rotate screen_rotate
 
 BALLY bally
 (
+	.GORF1          (Gorf1),   //-- 0 = Gorf, 1 = Gorfprgm1
 	// Audio
 	.O_AUDIO_L      (audio_l), //  : out   std_logic_vector(7 downto 0);
 	.O_AUDIO_R      (audio_r), //  : out   std_logic_vector(7 downto 0);
