@@ -6,6 +6,7 @@ library ieee;
 entity GorfSound_DDRAM is
 port (
 	-- Sample data
+	GORF1  		: in  std_logic; -- 0 = Gorf, 1 = Gorfprgm1
 	s_enable  	: in  std_logic;
 	s_addr    	: out std_logic_vector(23 downto 0);
 	s_data    	: in  std_logic_vector(15 downto 0);
@@ -14,7 +15,7 @@ port (
 	-- Sounds out
 	audio_out_l : out std_logic_vector(15 downto 0);
 	audio_out_r : out std_logic_vector(15 downto 0);
-	votrax      : out std_logic;     
+	votrax      : out std_logic;
    -- cpu
 	I_MXA    	: in  std_logic_vector(15 downto 0);
    I_RESET_L 	: in  std_logic;
@@ -24,7 +25,7 @@ port (
 	I_HL        : in  std_logic_vector(15 downto 0);
     -- clks
    I_CPU_ENA 	: in  std_logic; -- cpu clock ena
-   ENA       	: in  std_logic; 
+   ENA       	: in  std_logic;
    CLK       	: in  std_logic  -- sys clock (14 Mhz)
 );
 end entity;
@@ -36,19 +37,19 @@ end entity;
 architecture RTL of GorfSound_DDRAM is
 
  signal wav_clk_cnt : std_logic_vector(8 downto 0) := (others=>'0'); -- 44kHz divider / sound# counter
- 
+
  subtype snd_id_t is integer range 0 to 87;
- 
+
  -- sound#
  signal snd_id   : integer range 0 to 15;				-- for Time Slice
  signal snd_play : snd_id_t := 87; 						-- current wav playing
  signal audio    : std_logic_vector(15 downto 0) register := (others=>'0');
- 
- signal wave_read_ct   : std_logic_vector(2 downto 0) register := (others=>'0'); 
+
+ signal wave_read_ct   : std_logic_vector(2 downto 0) register := (others=>'0');
  signal wave_data      : std_logic_vector(15 downto 0) register := (others=>'0');
- 
+
  type snd_addr_t is array(snd_id_t) of std_logic_vector(23 downto 0);
- 
+
 -- 00 - a.wav               1 11025 000000 001A14
 -- 01 - again.wav           1 11025 001A16 0066FC
 -- 02 - all.wav             1 11025 0066FE 025B18
@@ -138,7 +139,7 @@ architecture RTL of GorfSound_DDRAM is
 -- 86 - your.wav            1 11025 1312F0 133278
 -- 87 - None!
 
- -- wave start addresses in sdram 
+ -- wave start addresses in sdram
  constant snd_starts : snd_addr_t := (
 	x"000000",x"001A16",x"0066FE",x"025B1A",x"02817C",x"029AF0",x"02FD24",x"03391C",
 	x"035748",x"038AAC",x"03DB54",x"0401FA",x"041A88",x"0436E4",x"045E6A",x"047D1C",
@@ -152,7 +153,7 @@ architecture RTL of GorfSound_DDRAM is
 	x"105730",x"107A06",x"10ACE8",x"10ACEC",x"116C16",x"11872A",x"1199B6",x"11AB72",
 	x"11BD5A",x"11E44E",x"123524",x"1285B2",x"12D160",x"12F444",x"1312F0",x"000000");
 
- -- wave end addresses in sdram 
+ -- wave end addresses in sdram
  constant snd_stops : snd_addr_t := (
 	x"001A14",x"0066FC",x"025B18",x"02817A",x"029AEE",x"02FD22",x"03391A",x"035746",
 	x"038AAA",x"03DB52",x"0401F8",x"041A86",x"0436E2",x"045E68",x"047D1A",x"04B08A",
@@ -165,21 +166,21 @@ architecture RTL of GorfSound_DDRAM is
 	x"0F035A",x"0F4304",x"0F611A",x"0F9B44",x"0FEADA",x"100AEA",x"1030CE",x"10572E",
 	x"107A04",x"10ACE6",x"10ACEA",x"116C14",x"118728",x"1199B4",x"11AB70",x"11BD58",
 	x"11E44C",x"123522",x"1285B0",x"12D15E",x"12F442",x"1312EE",x"133278",x"000000");
-	
+
  -- sound playing
- signal snd_starteds : std_logic := '0'; 
- signal last_start   : std_logic := '0'; 
+ signal snd_starteds : std_logic := '0';
+ signal last_start   : std_logic := '0';
  signal cs_r         : std_logic;
  signal snd_addrs    : std_logic_vector(23 downto 0);
  signal clk11k       : std_logic_vector(1 downto 0) := "00";
  signal Phoneme      : std_logic_vector(5 downto 0) := "111111";
  signal WriteAddress : std_logic_vector(15 downto 0);
- 
+
  begin
- 
+
   snd_id <= to_integer(unsigned(wav_clk_cnt(8 downto 5)));
   votrax <= not snd_starteds;
-  
+
   p_chip_sel : process(ENA, I_MXA)
   begin
     cs_r <= '0';
@@ -206,23 +207,25 @@ architecture RTL of GorfSound_DDRAM is
 		last_start <= snd_starteds;
     end if;
   end process;
-  
+
  Play : process
  begin
 
 	wait until rising_edge(CLK);
 
 	if s_enable='1' then
-	
+
 		 -- work out what sample to play
 		 if snd_starteds = '0' then
+
+			if GORF1 ='0' then -- 0 = Gorf, 1 = Gorfprgm1
 
 			 case Phoneme is
 				when "000011" => snd_play <= 74; 		-- Pause
 				when "111110" => snd_play <= 61; 		-- SPause
 				when "111111" => snd_play <= 87; 		-- STOP
 				when others =>
-					case WriteAddress is	
+					case WriteAddress is
 						-- HL=Address of Phoneme in ROM - use this to work out word/phrase to speak
 						when x"B3C3" | x"B3E0" => snd_play <= 0; 			-- A
 						when x"11AF" => snd_play <= 1; 						-- Again
@@ -261,7 +264,7 @@ architecture RTL of GorfSound_DDRAM is
 						when x"1304" => snd_play <= 34; 						-- Enemy
 						when x"1215" => snd_play <= 35; 						-- Escape
 						when x"A9CF" => snd_play <= 36; 						-- Flagship
-						when x"A99E" | x"A9C2" | x"B475" => 
+						when x"A99E" | x"A9C2" | x"B475" =>
 						                snd_play <= 37; 						-- For
 						when x"12B6" => snd_play <= 38; 						-- Galactic
 						when x"11A0" => snd_play <= 39; 						-- Galaxy
@@ -275,7 +278,7 @@ architecture RTL of GorfSound_DDRAM is
 						when x"A995" => snd_play <= 46; 						-- Harder
 						when x"129D" => snd_play <= 47; 						-- Have
 						when x"A9C6" => snd_play <= 48; 						-- Hitting
-						when x"116F" | x"B44A" | x"11B6" => 
+						when x"116F" | x"B44A" | x"11B6" =>
 						                snd_play <= 49; 						-- I
 						when x"A9A9" => snd_play <= 50; 						-- In
 						when x"115F" => snd_play <= 51; 						-- Insert
@@ -318,7 +321,111 @@ architecture RTL of GorfSound_DDRAM is
 						when others  => snd_play <= 87; 						-- Nothing matched, stopped
 					end case;
 			 end case;
-						
+
+			else
+			 case Phoneme is
+				when "000011" => snd_play <= 74; 		-- Pause
+				when "111110" => snd_play <= 61; 		-- SPause
+				when "111111" => snd_play <= 87; 		-- STOP
+				when others =>
+					case WriteAddress is
+-- Gorf Program 1
+						-- HL=Address of Phoneme in ROM - use this to work out word/phrase to speak
+						when x"B331" | x"B34E" => snd_play <= 0; 			-- A
+						when x"11C2" => snd_play <= 1; 						-- Again
+						when x"B3BB" | x"1185" => snd_play <= 3; 			-- Am
+						when x"B386" => snd_play <= 4; 						-- And
+						when x"11AE" | x"1310" => snd_play <= 6; 			-- Another
+						when x"B3AA" | x"12DE" => snd_play <= 7; 			-- Are
+						when x"11FD" | x"1203" => snd_play <= 8; 			-- Attack
+						when x"12A1" => snd_play <= 9; 						-- Avenger
+						when x"1259" | x"120A" => snd_play <= 10; 			-- Bad
+						when x"A8E8" => snd_play <= 11; 					-- Be
+						when x"12B4" => snd_play <= 12; 					-- Been
+						when x"12E2" => snd_play <= 13; 					-- Bite
+						when x"A8F0" => snd_play <= 14; 					-- But
+						when x"B33A" => snd_play <= 15; 					-- Button
+						when x"1278" => snd_play <= 16; 					-- Cadet
+						when x"1222" => snd_play <= 17; 					-- Cannot
+						when x"127F" => snd_play <= 18; 					-- Captain
+						when x"A90A" => snd_play <= 19; 					-- Chronicle
+						when x"1178" => snd_play <= 20; 					-- Coin
+						when x"11D2" => snd_play <= 21; 					-- Coins
+						when x"1288" => snd_play <= 22; 					-- Colonel
+						when x"11A9" => snd_play <= 23; 					-- Conquer
+						when x"B3C9" => snd_play <= 24; 					-- Conscious
+						when x"12D2" => snd_play <= 25; 					-- Defender
+						when x"B38A" => snd_play <= 26; 					-- Destroy
+						when x"1320" => snd_play <= 27; 					-- Destroyed
+						when x"11CC" => snd_play <= 28; 					-- Devour
+						when x"B358" => snd_play <= 29; 					-- Doom
+						when x"1332" => snd_play <= 30; 					-- Draws
+						when x"12E9" => snd_play <= 31; 					-- Dust
+						when x"1191" => snd_play <= 32; 					-- Empire
+						when x"132E" => snd_play <= 33; 					-- End
+						when x"1317" => snd_play <= 34; 					-- Enemy
+						when x"1228" => snd_play <= 35; 					-- Escape
+						when x"A924" => snd_play <= 36; 					-- Flagship
+						when x"A8F3" | x"A917" | x"B3E3" =>
+						                snd_play <= 37; 					-- For
+						when x"12C9" => snd_play <= 38; 					-- Galactic
+						when x"11B3" => snd_play <= 39; 					-- Galaxy
+						when x"128F" => snd_play <= 40; 					-- General
+						when x"11E2" => snd_play <= 41; 					-- Gorf
+						when x"1189" | x"1230" | x"A902" | x"B350" | x"B399" | x"B3C0" | x"11EB"   =>
+						                snd_play <= 42; 					-- Gorfian
+						when x"11A0" | x"125F" => snd_play <= 43;			-- Gorfins
+						when x"1242" => snd_play <= 44; 					-- Got
+						when x"1214" => snd_play <= 45; 					-- Ha Ha Ha
+						when x"A8EA" => snd_play <= 46; 					-- Harder
+						when x"12B0" => snd_play <= 47; 					-- Have
+						when x"A91B" => snd_play <= 48; 					-- Hitting
+						when x"1182" | x"B3B8" | x"11C9" =>
+						                snd_play <= 49; 					-- I
+						when x"A8FE" => snd_play <= 50; 					-- In
+						when x"1172" => snd_play <= 51; 					-- Insert
+						when x"11DC" => snd_play <= 52; 					-- Long
+						when x"B34A" => snd_play <= 53; 					-- Meet
+						when x"120E" => snd_play <= 54; 					-- Move
+						when x"A920" | x"B395" => snd_play <= 55;			-- My
+--						when x"None" => snd_play <= 56; 					-- Near
+						when x"A8D8" => snd_play <= 57; 					-- Next
+						when x"124B" => snd_play <= 58; 					-- Nice
+						when x"126B" => snd_play <= 59; 					-- No
+						when x"A8F6" => snd_play <= 60; 					-- Now
+						when x"B334" => snd_play <= 62; 					-- Player
+						when x"B3D4" => snd_play <= 63; 					-- Prepare
+						when x"126D" => snd_play <= 64; 					-- Prisoners
+						when x"12B8" => snd_play <= 65; 					-- Promoted
+						when x"B32D" => snd_play <= 66; 					-- Push
+						when x"B3A2" => snd_play <= 67; 					-- Robot
+						when x"1239" | x"B374" | x"11F3"
+									    => snd_play <= 68; 					-- Robots
+						when x"B383" => snd_play <= 69; 					-- Seek
+						when x"131C" => snd_play <= 70; 					-- Ship
+						when x"1251" => snd_play <= 71; 					-- Shot
+						when x"12C6" => snd_play <= 72; 					-- Some
+						when x"1199" => snd_play <= 73; 					-- Space
+						when x"B35E" => snd_play <= 75; 					-- Survival
+						when x"1268" => snd_play <= 76; 					-- Take
+						when x"12E7" | x"B392" | x"B3BE" | x"1187" | x"122E" | x"A900"
+						             => snd_play <= 77; 					-- The
+						when x"A8E0" => snd_play <= 78; 					-- Time
+						when x"1257" | x"12C1" => snd_play <= 79;			-- To
+						when x"11BC" => snd_play <= 80; 					-- Try
+						when x"B3AC" => snd_play <= 81; 					-- Unbeatable
+						when x"1298" => snd_play <= 82; 					-- Warrior
+						when x"B37A" => snd_play <= 83; 					-- Warriors
+						when x"A8E5" | x"B347" => snd_play <= 84;			-- Will
+						when x"1246" | x"12DA" | x"12AC" | x"B343" | x"121E"
+					  	             => snd_play <= 85; 					-- You
+						when x"132B" => snd_play <= 86; 					-- Yours
+						when others  => snd_play <= 87; 					-- Nothing matched, stopped
+					end case;
+			 end case;
+
+			end if;
+
 			 -- Set start address for selected sample
 			 if snd_play /= 87 then
 					snd_addrs <= snd_starts(snd_play);
@@ -331,43 +438,43 @@ architecture RTL of GorfSound_DDRAM is
 				 snd_starteds <= '0';
 			 end if;
 		 end if;
-		 
+
 		 -- 44.1kHz base tempo / high bits for scanning sound#
 		 if wav_clk_cnt = x"145" then  -- divide 14MHz by 324 => 44.055kHz
 			 wav_clk_cnt <= (others=>'0');
 			 clk11k <= clk11k + 1;
-			 
+
 			 -- All samples 11khz, so every 4th call
 			 if clk11k="11" then
 				 -- latch final audio / reset sum
 				 audio_out_l <= not audio(15) & audio(14 downto 0); -- Convert to unsigned
 				 audio_out_r <= not audio(15) & audio(14 downto 0); --     for output
 			 end if;
-			
+
 		 else
 			 wav_clk_cnt <= wav_clk_cnt + 1;
 		 end if;
 
 		-- single channel
-		if clk11k="01" then 
-		
-			-- sound# currently playing 
+		if clk11k="01" then
+
+			-- sound# currently playing
 			if (snd_starteds = '1') then
-			
+
 				-- set ddram addr
 				if snd_id = 2 and wav_clk_cnt(4 downto 0) = "00000" then
-					s_addr <= snd_addrs;			
+					s_addr <= snd_addrs;
 					wave_read_ct <= "001";
 				end if;
 
 				if wave_read_ct /= "000" then
-				
+
 						case wave_read_ct is
-						
+
 							when "001" => -- Read first byte
 								s_read       <= '1';
 								wave_read_ct <= "010";
-						
+
 							when "010" => -- First byte returned ?
 								if s_ready='1' then
 									s_read <= '0';
@@ -375,11 +482,11 @@ architecture RTL of GorfSound_DDRAM is
 									wave_data(7 downto 0) <= s_data(7 downto 0);
 									wave_read_ct <= "011";
 								end if;
-									
+
 							when "011" => -- Read second byte
 									s_read <= '1';
 									wave_read_ct <= "100";
-												
+
 							when "100" => -- Second byte returned ?
 								if s_ready='1' then
 									s_read <= '0';
@@ -389,32 +496,32 @@ architecture RTL of GorfSound_DDRAM is
 
 							when "101" => -- Completed
 									audio <= wave_data;
-									snd_addrs <= snd_addrs + 2;	
+									snd_addrs <= snd_addrs + 2;
 									wave_read_ct <= "000";
-						
+
 							when others => null;
-							
+
 						end case;
-						
+
 				end if;
-			
+
 				-- (stop / loop)
-				if snd_addrs >= snd_stops(snd_play) then 
+				if snd_addrs >= snd_stops(snd_play) then
 						snd_starteds <= '0';
 						snd_play <= 87;
 						audio <= (others => '0');
 				end if;
-				
+
 			end if;
-		
+
 		end if;
-		
+
 	else
 		 -- Silence
 		 audio_out_l <= (others => '0');
 		 audio_out_r <= (others => '0');
 	end if;
-		
+
  end process;
 
 end architecture;
