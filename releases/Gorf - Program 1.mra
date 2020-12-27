@@ -39341,7 +39341,7 @@ A7EEC9FDC4073BF1A7E77CC7ECBD4DD4E7E5D510E41BAA15D01082F5EAFF7B0C
 FE05520E98167015A00C420CF8086D0F4915141656170B0C5CFF
 		</part>
 	</rom>
-<rom index="0" zip="gorf.zip" md5=none type="nonmerged">
+<rom index="0" zip="gorf.zip" md5="none" type="nonmerged">
 		<part crc="97cb4a6a" name="873a.x1"/>
 		<part crc="257236f8" name="873b.x2"/>
 		<part crc="16b0638b" name="873c.x3"/>
