@@ -160,22 +160,24 @@ module emu
 
 
 ///////// Default values for ports not used in this core /////////
+assign VGA_F1    = 0;
+assign VGA_SCALER= 0;
 
 assign USER_OUT = '1;
 
 assign AUDIO_S   = mod_seawolf2; // signed - seawolf 2, unsigned others
-assign AUDIO_MIX = 2'd0;
 
 // Use in Gorf to drive rank lights (1-6 = rank lights, 7 = joystick on/off ?)
 assign LED_USER  = ioctl_download;	
 assign LED_DISK  = 0;
 assign LED_POWER = 0;
 
+assign {FB_PAL_CLK, FB_FORCE_BLANK, FB_PAL_ADDR, FB_PAL_DOUT, FB_PAL_WR} = '0;
 
 wire [1:0] ar = status[20:19];
 
-assign VIDEO_ARX = (!ar) ? ((status[2])  ? 8'd4 : 8'd3) : (ar - 1'd1);
-assign VIDEO_ARY = (!ar) ? ((status[2])  ? 8'd3 : 8'd4) : 12'd0;
+assign VIDEO_ARX = (!ar) ? ((status[2]|~mod_gorf)  ? 8'd4 : 8'd3) : (ar - 1'd1);
+assign VIDEO_ARY = (!ar) ? ((status[2]|~mod_gorf)  ? 8'd3 : 8'd4) : 12'd0;
 
 `include "build_id.v" 
 
@@ -183,7 +185,7 @@ localparam CONF_STR = {
 	"A.ASTROCADE;;",
 	"-;",
 	"H0OJK,Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
-	"H0O2,Orientation,Vert,Horz;",
+	"H1H0O2,Orientation,Vert,Horz;",
 	"O35,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
 	"-;",
 	"DIP;",
@@ -252,7 +254,7 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 	.status(status),
 	.forced_scandoubler(forced_scandoubler),
 	.gamma_bus(gamma_bus),
-	.status_menumask({direct_video}),
+	.status_menumask({~mod_gorf,direct_video}),
 	.direct_video(direct_video),
 
 
@@ -302,6 +304,9 @@ always @(posedge clk_sys) begin
 		Gorf1 		<= 1;
 		end
 end
+
+
+wire no_rotate = status[2] | direct_video | ~mod_gorf;
 
 
 
@@ -479,9 +484,9 @@ wire [10:0] VCount;
 reg ce_pix;
 
 // Corrected VCount (allowing for interlaced output)
-wire [10:0] MyVCount = (VCount >= 264) ? VCount - 263 : VCount;
+wire [10:0] MyVCount = (VCount >= 11'd264) ? VCount - 11'd263 : VCount;
 // Change blanking signal to stabilise picture
-wire MyVBlank = ((MyVCount < 25) || (MyVCount > 254));
+wire MyVBlank = ((MyVCount < 11'd25) || (MyVCount > 11'd254));
 
 always @(posedge clk_sys) begin
 	ce_pix <= ~ce_pix;
@@ -516,11 +521,14 @@ arcade_video #(.WIDTH(360), .DW(12)) arcade_video
 screen_rotate screen_rotate
 (
 		  .*,
-		  .rotate_ccw(1),
-		  .no_rotate(status[2])
+		  .rotate_ccw(1)
 );
 
 `endif
+
+reg [15:0] wave_data_reg;
+always @(posedge clk_sys)
+	wave_data_reg <= wave_data;
 
 
 BALLY bally
@@ -558,7 +566,7 @@ BALLY bally
 	.O_SAMP_R       (sample_r),
 	.O_SAMP_ADDR    (wave_addr),
 	.O_SAMP_READ    (wave_rd),
-	.I_SAMP_DATA    (wave_data),
+	.I_SAMP_DATA    (wave_data_reg),
 	.O_SAMP_BUSY    (Votrax_Status),
 	.I_SAMP_READY   (wav_data_ready),
 
