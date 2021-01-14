@@ -306,7 +306,6 @@ always @(posedge clk_sys) begin
 end
 
 
-wire no_rotate = status[2] | direct_video | ~mod_gorf;
 
 
 
@@ -473,7 +472,6 @@ assign AUDIO_R = OnlySamples ? sample_r : PlusSamples ? Sum_R : Stereo ? {audio_
 
 
 wire [3:0] R, G, B;
-wire hs,vs;
 
 reg  HSync;
 reg  VSync;
@@ -492,10 +490,34 @@ always @(posedge clk_sys) begin
 	ce_pix <= ~ce_pix;
 end
 
-assign VGA_F1 = 0;
 
 //actual: 0-225, 0-238
 //quoted: 160/320, 102/204
+wire no_rotate = AllowRotate ? status[2] | direct_video | ~mod_gorf : 1'd1;
+
+/* some weird problem with FB detecting the size correctly */
+reg old_reset;
+reg [3:0] screencount;
+reg vsync_c;
+reg AllowRotate = 0;
+
+always @(posedge clk_sys)
+begin
+   old_reset <= reset;
+   if (old_reset == 1 && reset== 0)
+       screencount <= 0;
+   else
+		if (reset == 0) begin
+			vsync_c <= VSync;
+			if (vsync_c ==0 && VSync== 1)
+				  screencount <= screencount + 1'b1;
+
+			if (screencount == 10)
+				  AllowRotate <= 1;
+	end;
+end
+/* END hack to fix FB */
+
 
 arcade_video #(.WIDTH(360), .DW(12)) arcade_video
 (
@@ -507,8 +529,8 @@ arcade_video #(.WIDTH(360), .DW(12)) arcade_video
         .RGB_in({O_R,O_G,O_B}),
         .HBlank(HBlank),
         .VBlank(MyVBlank),
-        .HSync(hs),
-        .VSync(vs),
+        .HSync(HSync),
+        .VSync(VSync),
 
         .fx(status[5:3]),
         .forced_scandoubler(forced_scandoubler)
@@ -545,8 +567,8 @@ BALLY bally
 	.O_CE_PIX       (),
 	.O_HBLANK_V     (HBlank),
 	.O_VBLANK_V     (VBlank),
-	.O_HSYNC        (hs), //    : out   std_logic;
-	.O_VSYNC        (vs), //    : out   std_logic;
+	.O_HSYNC        (HSync), //    : out   std_logic;
+	.O_VSYNC        (VSync), //    : out   std_logic;
 	.O_COMP_SYNC_L  (), //    : out   std_logic;
 	.O_FPSYNC       (), //    : out   std_logic;
 	.O_HCOUNT       (HCount),
