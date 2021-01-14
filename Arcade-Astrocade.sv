@@ -66,9 +66,13 @@ module emu
 	//Base video clock. Usually equals to CLK_SYS.
 	output        CLK_VIDEO,
 
-	//Multiple resolutions are supported using different VGA_CE rates.
+	//Multiple resolutions are supported using different CE_PIXEL rates.
 	//Must be based on CLK_VIDEO
 	output        CE_PIXEL,
+
+	//Video aspect ratio for HDMI. Most retro systems have ratio 4:3.
+	output [11:0] VIDEO_ARX,
+	output [11:0] VIDEO_ARY,
 
 	output  [7:0] VGA_R,
 	output  [7:0] VGA_G,
@@ -77,26 +81,8 @@ module emu
 	output        VGA_VS,
 	output        VGA_DE,    // = ~(VBlank | HBlank)
 	output        VGA_F1,
-    output [1:0]  VGA_SL,						
-
-	//Base video clock. Usually equals to CLK_SYS.
-	output        HDMI_CLK,
-
-	//Multiple resolutions are supported using different HDMI_CE rates.
-	//Must be based on CLK_VIDEO
-	output        HDMI_CE,
-
-	output  [7:0] HDMI_R,
-	output  [7:0] HDMI_G,
-	output  [7:0] HDMI_B,
-	output        HDMI_HS,
-	output        HDMI_VS,
-	output        HDMI_DE,   // = ~(VBlank | HBlank)
-	output  [1:0] HDMI_SL,   // scanlines fx
-
-	//Video aspect ratio for HDMI. Most retro systems have ratio 4:3.
-	output  [7:0] VIDEO_ARX,
-	output  [7:0] VIDEO_ARY,
+	output [1:0]  VGA_SL,
+	output        VGA_SCALER, // Force VGA scaler
 
 	// Use framebuffer from DDRAM (USE_FB=1 in qsf)
 	// FB_FORMAT:
@@ -105,7 +91,6 @@ module emu
 	//    [4]   : 0=RGB  1=BGR (for 16/24/32 modes)
 	//
 	// FB_STRIDE either 0 (rounded to 256 bytes) or multiple of 16 bytes.
-
 	output        FB_EN,
 	output  [4:0] FB_FORMAT,
 	output [11:0] FB_WIDTH,
@@ -114,6 +99,15 @@ module emu
 	output [13:0] FB_STRIDE,
 	input         FB_VBL,
 	input         FB_LL,
+	output        FB_FORCE_BLANK,
+
+	// Palette control for 8bit modes.
+	// Ignored for other video modes.
+	output        FB_PAL_CLK,
+	output  [7:0] FB_PAL_ADDR,
+	output [23:0] FB_PAL_DOUT,
+	input  [23:0] FB_PAL_DIN,
+	output        FB_PAL_WR,
 
 	output        LED_USER,  // 1 - ON, 0 - OFF.
 
@@ -123,21 +117,10 @@ module emu
 	output  [1:0] LED_POWER,
 	output  [1:0] LED_DISK,
 
-    input         CLK_AUDIO, // 24.576 MHz
+	input         CLK_AUDIO, // 24.576 MHz
 	output [15:0] AUDIO_L,
 	output [15:0] AUDIO_R,
 	output        AUDIO_S,    // 1 - signed audio samples, 0 - unsigned
-	output  [1:0] AUDIO_MIX,  // 0 - no mix, 1 - 25%, 2 - 50%, 3 - 100% (mono)
-
-	//ADC
-	inout   [3:0] ADC_BUS,
-
-	//SD-SPI
-	output        SD_SCK,
-	output        SD_MOSI,
-	input         SD_MISO,
-	output        SD_CS,
-	input         SD_CD,
 
 	//High latency DDR3 RAM interface
 	//Use for non-critical time purposes
@@ -151,8 +134,8 @@ module emu
 	output [63:0] DDRAM_DIN,
 	output  [7:0] DDRAM_BE,
 	output        DDRAM_WE,
-	
-	//SDRAM interface with lower latency
+
+`ifdef USE_SDRAM
 	output        SDRAM_CLK,
 	output        SDRAM_CKE,
 	output [12:0] SDRAM_A,
@@ -163,14 +146,8 @@ module emu
 	output        SDRAM_nCS,
 	output        SDRAM_nCAS,
 	output        SDRAM_nRAS,
-	output        SDRAM_nWE, 
-
-	input         UART_CTS,
-	output        UART_RTS,
-	input         UART_RXD,
-	output        UART_TXD,
-	output        UART_DTR,
-	input         UART_DSR,
+	output        SDRAM_nWE,
+`endif
 
 	// Open-drain User port.
 	// 0 - D+/RX
@@ -181,12 +158,10 @@ module emu
 	output  [6:0] USER_OUT
 );
 
+
 ///////// Default values for ports not used in this core /////////
 
-assign ADC_BUS  = 'Z;
 assign USER_OUT = '1;
-assign {UART_RTS, UART_TXD, UART_DTR} = 0;
-assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 
 assign AUDIO_S   = mod_seawolf2; // signed - seawolf 2, unsigned others
 assign AUDIO_MIX = 2'd0;
@@ -196,16 +171,19 @@ assign LED_USER  = ioctl_download;
 assign LED_DISK  = 0;
 assign LED_POWER = 0;
 
-assign VIDEO_ARX = status[1] ? 8'd16 : status[2] ? 8'd4 : 8'd3;
-assign VIDEO_ARY = status[1] ? 8'd9  : status[2] ? 8'd3 : 8'd4;
+
+wire [1:0] ar = status[20:19];
+
+assign VIDEO_ARX = (!ar) ? ((status[2])  ? 8'd4 : 8'd3) : (ar - 1'd1);
+assign VIDEO_ARY = (!ar) ? ((status[2])  ? 8'd3 : 8'd4) : 12'd0;
 
 `include "build_id.v" 
 
 localparam CONF_STR = {
 	"A.ASTROCADE;;",
 	"-;",
-	"O1,Aspect ratio,4:3,16:9;",
-	"O2,Orientation,Vert,Horz;",
+	"H0OJK,Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
+	"H0O2,Orientation,Vert,Horz;",
 	"O35,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
 	"-;",
 	"DIP;",
@@ -254,7 +232,10 @@ wire        ioctl_wr;
 wire [24:0] ioctl_addr;
 wire [15:0] ioctl_dout;
 wire  [7:0] ioctl_index;
-wire			ioctl_wait;
+wire        ioctl_wait;
+
+wire        direct_video;
+
 
 wire [15:0] joystick_0,joystick_1,joystick_a0,joystick_a1;
 
@@ -271,6 +252,10 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 	.status(status),
 	.forced_scandoubler(forced_scandoubler),
 	.gamma_bus(gamma_bus),
+	.status_menumask({direct_video}),
+	.direct_video(direct_video),
+
+
 
 	.ioctl_download(ioctl_download),
 	.ioctl_wr(ioctl_wr),
@@ -282,9 +267,8 @@ hps_io #(.STRLEN($size(CONF_STR)>>3)) hps_io
 	.joystick_0(joystick_0),
 	.joystick_1(joystick_1),
 	.joystick_analog_0(joystick_a0),
-	.joystick_analog_1(joystick_a1),
+	.joystick_analog_1(joystick_a1)
 	
-	.ps2_key(ps2_key)
 );
 
 
@@ -378,81 +362,25 @@ always @(*) begin
 	endcase
 end
 
-wire [10:0] ps2_key;
-wire        pressed = ps2_key[9];
-wire [8:0]  code    = ps2_key[8:0];
-
-always @(posedge clk_sys) begin
-	reg old_state;
-	old_state <= ps2_key[10];
-	
-	if(old_state != ps2_key[10]) begin
-		casex(code)
-			'hX75: btn_up          <= pressed; // up
-			'hX72: btn_down        <= pressed; // down
-			'hX6B: btn_left        <= pressed; // left
-			'hX74: btn_right       <= pressed; // right
-			'h029: btn_fire2       <= pressed; // space
-			'h014: btn_fire1       <= pressed; // ctrl
-
-			'h005: btn_one_player  <= pressed; // F1
-			'h006: btn_two_players <= pressed; // F2
-			'h004: btn_coin        <= pressed; // F3
-
-			// JPAC/IPAC/MAME Style Codes
-			'h016: btn_start_1     <= pressed; // 1
-			'h01E: btn_start_2     <= pressed; // 2
-			'h02E: btn_coin_1      <= pressed; // 5
-			'h02D: btn_up_2        <= pressed; // R
-			'h02B: btn_down_2      <= pressed; // F
-			'h023: btn_left_2      <= pressed; // D
-			'h034: btn_right_2     <= pressed; // G
-			'h01C: btn_fire1_2     <= pressed; // A
-			'h01B: btn_fire2_2     <= pressed; // S
-		endcase
-	end
-end
-
-// Mister Buttons
-reg btn_up    = 0;
-reg btn_down  = 0;
-reg btn_right = 0;
-reg btn_left  = 0;
-reg btn_one_player  = 0;
-reg btn_two_players = 0;
-reg btn_coin  = 0;
-reg btn_fire1 = 0;
-reg btn_fire2 = 0;
-
-// Mame buttons
-reg btn_start_1=0;
-reg btn_start_2=0;
-reg btn_coin_1=0;
-reg btn_up_2=0;
-reg btn_down_2=0;
-reg btn_left_2=0;
-reg btn_right_2=0;
-reg btn_fire1_2=0;
-reg btn_fire2_2=0;
 
 // Combined buttons
-wire B1_S = btn_one_player | btn_start_1 | joystick_0[6];
-wire B2_S = btn_two_players | btn_start_2 | joystick_0[7];
-wire B1_C = btn_coin | btn_coin_1 | joystick_0[8];
+wire B1_S = joystick_0[6];
+wire B2_S = joystick_0[7];
+wire B1_C = joystick_0[8];
 
-wire B1_U = btn_up | joystick_0[3];
-wire B1_D = btn_down | joystick_0[2];
-wire B1_L = btn_left | joystick_0[1];
-wire B1_R = btn_right | joystick_0[0];
-wire B1_F = btn_fire1 | joystick_0[4];
-wire B1_FB = btn_fire2 | joystick_0[5];
+wire B1_U = joystick_0[3];
+wire B1_D = joystick_0[2];
+wire B1_L = joystick_0[1];
+wire B1_R = joystick_0[0];
+wire B1_F = joystick_0[4];
+wire B1_FB =joystick_0[5];
 
-wire B2_U = btn_up_2 | joystick_1[3];
-wire B2_D = btn_down_2 | joystick_1[2];
-wire B2_L = btn_left_2 | joystick_1[1];
-wire B2_R = btn_right_2 | joystick_1[0];
-wire B2_F = btn_fire1_2 | joystick_1[4];
-wire B2_FB = btn_fire2_2 | joystick_1[5];
+wire B2_U = joystick_1[3];
+wire B2_D = joystick_1[2];
+wire B2_L = joystick_1[1];
+wire B2_R = joystick_1[0];
+wire B2_F = joystick_1[4];
+wire B2_FB =joystick_1[5];
 
 ////////////////////////////  SOUND  ////////////////////////////////////
 
@@ -578,7 +506,7 @@ arcade_video #(.WIDTH(360), .DW(12)) arcade_video
         .VSync(vs),
 
         .fx(status[5:3]),
-		  .forced_scandoubler(forced_scandoubler)
+        .forced_scandoubler(forced_scandoubler)
 );
 
 
