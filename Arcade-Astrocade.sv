@@ -493,33 +493,11 @@ end
 
 //actual: 0-225, 0-238
 //quoted: 160/320, 102/204
-wire no_rotate = AllowRotate ? status[2] | direct_video | ~mod_gorf : 1'd1;
-
-/* some weird problem with FB detecting the size correctly */
-reg old_reset;
-reg [3:0] screencount;
-reg vsync_c;
-reg AllowRotate = 0;
-
-always @(posedge clk_sys)
-begin
-   old_reset <= reset;
-   if (old_reset == 1 && reset== 0)
-       screencount <= 0;
-   else
-		if (reset == 0) begin
-			vsync_c <= VSync;
-			if (vsync_c ==0 && VSync== 1)
-				  screencount <= screencount + 1'b1;
-
-			if (screencount == 10)
-				  AllowRotate <= 1;
-	end;
-end
-/* END hack to fix FB */
+wire no_rotate =  status[2] | direct_video | ~mod_gorf;
 
 
-arcade_video #(.WIDTH(360), .DW(12)) arcade_video
+
+arcade_video #(.WIDTH(360), .DW(12), .GAMMA(1)) arcade_video
 (
         .*,
 
