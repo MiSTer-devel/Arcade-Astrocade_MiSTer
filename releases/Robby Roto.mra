@@ -7,7 +7,7 @@
 	<manufacturer>Dave Nutting Associates / Bally Midway</manufacturer>
 	<category>Maze / Digging</category>
 	<rbf>astrocade</rbf>
-	<switches default="00,00,00,8F">
+	<switches default="00,00,02,8F">
 		<dip bits="17"    name="Service" ids="On,Off"/>
 		<dip bits="24"    name="Use NVRAM" ids="No,Yes"/>
 		<dip bits="25"    name="Use Settings" ids="Reset,Yes"/>
