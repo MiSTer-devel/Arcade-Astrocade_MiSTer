@@ -486,32 +486,32 @@ wire [10:0] MyVCount = (VCount >= 11'd264) ? VCount - 11'd263 : VCount;
 // Change blanking signal to stabilise picture
 wire MyVBlank = ((MyVCount < 11'd25) || (MyVCount > 11'd254));
 
-always @(posedge clk_sys) begin
-	ce_pix <= ~ce_pix;
+always @(posedge MY_CLK_VIDEO) begin
+	reg [2:0] div;
+	
+	div <= div + 1'd1;
+	ce_pix <= !div;
 end
-
 
 //actual: 0-225, 0-238
 //quoted: 160/320, 102/204
 wire no_rotate =  status[2] | direct_video | ~mod_gorf;
 
-
-
 arcade_video #(.WIDTH(360), .DW(12), .GAMMA(1)) arcade_video
 (
-        .*,
+	.*,
 
-        .clk_video(MY_CLK_VIDEO),
-        .ce_pix(ce_pix),
+	.clk_video(MY_CLK_VIDEO),
+	.ce_pix(ce_pix),
 
-        .RGB_in({O_R,O_G,O_B}),
-        .HBlank(HBlank),
-        .VBlank(MyVBlank),
-        .HSync(HSync),
-        .VSync(VSync),
+	.RGB_in({O_R,O_G,O_B}),
+	.HBlank(HBlank),
+	.VBlank(MyVBlank),
+	.HSync(HSync),
+	.VSync(VSync),
 
-        .fx(status[5:3]),
-        .forced_scandoubler(forced_scandoubler)
+	.fx(status[5:3]),
+	.forced_scandoubler(forced_scandoubler)
 );
 
 
@@ -520,8 +520,8 @@ arcade_video #(.WIDTH(360), .DW(12), .GAMMA(1)) arcade_video
 
 screen_rotate screen_rotate
 (
-		  .*,
-		  .rotate_ccw(1)
+	.*,
+	.rotate_ccw(1)
 );
 
 `endif
