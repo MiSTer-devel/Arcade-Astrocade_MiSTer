@@ -1,25 +1,55 @@
 <misterromdescription>
 	<name>Space Zap</name>
-	<mameversion>0219</mameversion>
-	<setname>spacezap</setname>
-	<mratimestamp>20200330181259</mratimestamp>
+	<region></region>
+	<homebrew>no</homebrew>
+	<bootleg>no</bootleg>
+	<version></version>
+	<alternative></alternative>
+	<platform></platform>
+	<series></series>
 	<year>1980</year>
 	<manufacturer>Midway</manufacturer>
-	<category>Space / Base Defense</category>
-	<category>Space / Shooter</category>
+	<category>Shooter - Multidirectional</category>
+
+	<setname>spacezap</setname>
+	<parent>spacezap</parent>
+	<mameversion>0219</mameversion>
 	<rbf>astrocade</rbf>
+	<about></about>
+
+	<resolution>15kHz</resolution>
+	<rotation>horizontal</rotation>
+	<flip></flip>
+
+	<players>2 (alternating)</players>
+	<joystick>4-way</joystick>
+	<special_controls></special_controls>
+	<buttons>1</buttons>
+	<button_names></button_names>
+
 	<switches default="00,00,03,FF">
-		<dip bits="16"    name="Cabinet" ids="Cocktail,Upright"/>
-		<dip bits="17"    name="Service" ids="On,Off"/>
-		<dip bits="25,26" name="Coinage" ids="1c/5cr,1c/3cr,2c/1cr,1c/1cr"/>
-	</switches>
+		<dip bits="01" ids="Colour,Mono" name="Monitor"></dip>
+		<dip bits="16" ids="Cocktail,Upright" name="Cabinet"></dip>
+		<dip bits="17" ids="On,Off" name="Service"></dip>
+		<dip bits="25,26" ids="1c/5cr,1c/3cr,2c/1cr,1c/1cr" name="Coinage"></dip>
+		</switches>
+
 	<rom index="1">
 		<part>03</part>
-	</rom>
-	<rom index="0" zip="spacezap.zip" md5="17d6d5dc739097980aa24a7075ea0c79">
-		<part crc="a92de312" name="0662.01"/>
-		<part crc="4836ebf1" name="0663.xx"/>
-		<part crc="d8193a80" name="0664.xx"/>
-		<part crc="3784228d" name="0665.xx"/>
-	</rom>
+		</rom>
+	<rom index="0" md5="17d6d5dc739097980aa24a7075ea0c79" zip="spacezap.zip">
+		<part crc="a92de312" name="0662.01"></part>
+		<part crc="4836ebf1" name="0663.xx"></part>
+		<part crc="d8193a80" name="0664.xx"></part>
+		<part crc="3784228d" name="0665.xx"></part>
+		</rom>
+	<rom_2></rom_2>
+	<rom_3></rom_3>
+	<rom_4></rom_4>
+
+	<nvram></nvram>
+
+	<remark></remark>
+
+	<mratimestamp>20210430005030</mratimestamp>
 </misterromdescription>
