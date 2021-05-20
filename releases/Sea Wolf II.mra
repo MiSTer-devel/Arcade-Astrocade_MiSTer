@@ -25,7 +25,7 @@
 	<players>2 (simultaneous)</players>
 	<joystick></joystick>
 	<special_controls>positional</special_controls>
-	<buttons>1</buttons>
+	<num_buttons>1</num_buttons>
 	<button_names></button_names>
 
 	<switches default="00,00,00,C1">
@@ -31606,8 +31606,8 @@ FFFF0000000002000000FFFFFFFF0000FEFFFFFFFEFFFEFFFFFF020001000300
 0000FFFF01000000000000000000FFFF0000FFFF0000FFFFFFFF0100
 		</part>
 		</rom>
-	<rom_3></rom_3>
-	<rom_4></rom_4>
+	<rom index="3"></rom>
+	<rom index="4"></rom>
 
 	<nvram></nvram>
 

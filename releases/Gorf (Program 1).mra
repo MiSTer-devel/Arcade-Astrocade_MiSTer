@@ -3,7 +3,7 @@
 	<region></region>
 	<homebrew>no</homebrew>
 	<bootleg>no</bootleg>
-	<version>Speech</version>
+	<version>Program 1</version>
 	<alternative></alternative>
 	<platform></platform>
 	<series></series>
@@ -40,17 +40,17 @@
 		</switches>
 
 	<rom index="1">
-		<part>04</part>
+		<part>07</part>
 		</rom>
-	<rom index="0" md5="cf4fe2ecfdc33a1dd4ee9e000a1c7bc2" type="nonmerged" zip="gorf.zip">
-		<part crc="5b348321" name="gorf-a.bin"></part>
-		<part crc="62d6de77" name="gorf-b.bin"></part>
-		<part crc="1d3bc9c9" name="gorf-c.bin"></part>
-		<part crc="70046e56" name="gorf-d.bin"></part>
-		<part crc="2d456eb5" name="gorf-e.bin"></part>
-		<part crc="f7e4e155" name="gorf-f.bin"></part>
-		<part crc="4e2bd9b9" name="gorf-g.bin"></part>
-		<part crc="fe7b863d" name="gorf-h.bin"></part>
+	<rom index="0" md5="none" type="nonmerged" zip="gorf.zip|gorfpgm1.zip ">
+		<part crc="97cb4a6a" name="873a.x1"></part>
+		<part crc="257236f8" name="873b.x2"></part>
+		<part crc="16b0638b" name="873c.x3"></part>
+		<part crc="b5e821dc" name="873d.x4"></part>
+		<part crc="8e82804b" name="873e.x5"></part>
+		<part crc="715fb4d9" name="873f.x6"></part>
+		<part crc="8a066456" name="873g.x7"></part>
+		<part crc="56d40c7c" name="873h.x8"></part>
 		</rom>
 	<rom index="2">
 		<part>

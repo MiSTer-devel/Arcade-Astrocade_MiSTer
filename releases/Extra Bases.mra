@@ -25,7 +25,7 @@
 	<players>2 (simultaneous)</players>
 	<joystick></joystick>
 	<special_controls>trackball</special_controls>
-	<buttons>1</buttons>
+	<num_buttons>1</num_buttons>
 	<button_names></button_names>
 
 	<switches default="00,00,00">
@@ -43,9 +43,9 @@
 		<part crc="bff6c97e" name="m761c"></part>
 		<part crc="5173781a" name="m761d"></part>
 		</rom>
-	<rom_2></rom_2>
-	<rom_3></rom_3>
-	<rom_4></rom_4>
+	<rom index="2"></rom>
+	<rom index="3"></rom>
+	<rom index="4"></rom>
 
 	<nvram></nvram>
 

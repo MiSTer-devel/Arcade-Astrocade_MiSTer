@@ -25,7 +25,7 @@
 	<players>2 (alternating)</players>
 	<joystick>8-way</joystick>
 	<special_controls></special_controls>
-	<buttons>1</buttons>
+	<num_buttons>1</num_buttons>
 	<button_names></button_names>
 
 	<switches default="00,00,03,FF">

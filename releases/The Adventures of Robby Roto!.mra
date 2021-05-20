@@ -26,7 +26,7 @@
 	<players>2 (alternating)</players>
 	<joystick>4-way</joystick>
 	<special_controls></special_controls>
-	<buttons>1</buttons>
+	<num_buttons>1</num_buttons>
 	<button_names></button_names>
 
 	<switches default="00,00,02,8F">
@@ -53,9 +53,9 @@
 		<part crc="370352bf" name="rotox9.bin"></part>
 		<part crc="e762cbda" name="rotox10.bin"></part>
 		</rom>
-	<rom_2></rom_2>
-	<rom_3></rom_3>
-	<rom_4></rom_4>
+	<rom index="2"></rom>
+	<rom index="3"></rom>
+	<rom index="4"></rom>
 
 	<nvram></nvram>
 
