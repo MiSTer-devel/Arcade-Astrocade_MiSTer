@@ -178,7 +178,7 @@ localparam CONF_STR = {
 	"R0,Reset;",
 	"J1,Fire 1,Fire 2,Start 1P,Start 2P,Coin;",
 	"jn,A,B,Start,Select,R;",
-	"jp,B,A,Start,,Select;",
+	"jp,B,A,Start,Select,R;",
 	"V,v",`BUILD_DATE
 };
 
@@ -393,7 +393,7 @@ reg btn_fire2_2=0;
 
 // Combined buttons
 wire B1_S = btn_one_player | btn_start_1 | joystick_0[6];
-wire B2_S = btn_two_players | btn_start_2 | joystick_0[7];
+wire B2_S = btn_two_players | btn_start_2 | joystick_0[7] | joystick_1[6];
 wire B1_C = btn_coin | btn_coin_1 | joystick_0[8];
 
 wire B1_U = btn_up | joystick_0[3];
