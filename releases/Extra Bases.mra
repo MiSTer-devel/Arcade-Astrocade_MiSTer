@@ -1,24 +1,55 @@
 <misterromdescription>
 	<name>Extra Bases</name>
-	<mameversion>0219</mameversion>
-	<setname>ebases</setname>
-	<mratimestamp>20200330175333</mratimestamp>
+	<region></region>
+	<homebrew>no</homebrew>
+	<bootleg>no</bootleg>
+	<version></version>
+	<alternative></alternative>
+	<platform></platform>
+	<series></series>
 	<year>1980</year>
-	<manufacturer>Dave Nutting Associates / Midway</manufacturer>
-	<category>Sports / Baseball</category>
+	<manufacturer>Dave Nutting Associates</manufacturer>
+	<manufacturer>Midway</manufacturer>
+	<category>Sports</category>
+
+	<setname>ebases</setname>
+	<parent>ebases</parent>
+	<mameversion>0219</mameversion>
 	<rbf>astrocade</rbf>
+	<about></about>
+
+	<resolution>15kHz</resolution>
+	<rotation>horizontal</rotation>
+	<flip></flip>
+
+	<players>2 (simultaneous)</players>
+	<joystick></joystick>
+	<special_controls>trackball</special_controls>
+	<num_buttons>1</num_buttons>
+	<button_names></button_names>
+
 	<switches default="00,00,00">
-		<dip bits="00"    name="Cabinet" ids="Upright,Cocktail"/>
-		<dip bits="01"    name="Monitor" ids="Colour,Mono"/>
-		<dip bits="16"    name="2 Player game" ids="2 Credits,1 Credit"/>
-	</switches>
+		<dip bits="00" ids="Upright,Cocktail" name="Cabinet"></dip>
+		<dip bits="01" ids="Colour,Mono" name="Monitor"></dip>
+		<dip bits="16" ids="2 Credits,1 Credit" name="2 Player game"></dip>
+		</switches>
+
 	<rom index="1">
 		<part>01</part>
-	</rom>
-	<rom index="0" zip="ebases.zip" md5="ce95f66a08a5d707c20edbd2c391b6f9">
-		<part crc="34422147" name="m761a"/>
-		<part crc="4f28dfd6" name="m761b"/>
-		<part crc="bff6c97e" name="m761c"/>
-		<part crc="5173781a" name="m761d"/>
-	</rom>
+		</rom>
+	<rom index="0" md5="ce95f66a08a5d707c20edbd2c391b6f9" zip="ebases.zip">
+		<part crc="34422147" name="m761a"></part>
+		<part crc="4f28dfd6" name="m761b"></part>
+		<part crc="bff6c97e" name="m761c"></part>
+		<part crc="5173781a" name="m761d"></part>
+		</rom>
+	<rom index="2"></rom>
+	<rom index="3"></rom>
+	<rom index="4"></rom>
+
+	<nvram></nvram>
+
+	<remark></remark>
+
+	<mratimestamp>20210430005030</mratimestamp>
 </misterromdescription>
