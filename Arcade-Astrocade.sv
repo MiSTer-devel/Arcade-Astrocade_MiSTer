@@ -205,9 +205,9 @@ pll pll
 (
 	.refclk(CLK_50M),
 	.rst(0),
-	.outclk_0(clk_sys),
-	.outclk_1(MY_CLK_VIDEO),
-	.outclk_2(clk_snd),
+	.outclk_0(clk_sys),			// 14Mhz
+	.outclk_1(MY_CLK_VIDEO),	// 57Mhz
+	.outclk_2(clk_snd),			// 28Mhz
 	.locked(pll_locked)
 );
 
@@ -310,13 +310,13 @@ end
 
 
 // Game options
-wire Stereo    = mod_gorf | mod_wow | mod_robby;                // Two sound chips fitted
-wire Sparkle   = mod_wow | mod_gorf;                            // Sparkle circuit used
-wire LightPen  = mod_wow | mod_gorf;                            // Light pen interrupt used
-wire High_Rom  = ~mod_seawolf2;	                                // Seawolf2 has ram C000-CFFF, everything else 8000-CFFF is ROM
+wire Stereo    = mod_gorf | mod_wow | mod_robby;      // Two sound chips fitted
+wire Sparkle   = mod_wow | mod_gorf;                  // Sparkle circuit used
+wire LightPen  = mod_wow | mod_gorf;                  // Light pen interrupt used
+wire High_Rom  = ~mod_seawolf2;	                     // Seawolf2 has ram C000-CFFF, everything else 8000-CFFF is ROM
 wire Extra_Rom = mod_robby;  									// Robby has ROM D000-EFFF as well
-wire OnlySamples = mod_seawolf2;                                // Uses samples but no sound chip
-wire PlusSamples = mod_gorf | mod_wow;							// Uses samples AND sound chip
+wire OnlySamples = mod_seawolf2;                      // Uses samples but no sound chip
+wire PlusSamples = mod_gorf | mod_wow;						// Uses samples AND sound chip
 reg  Gorf1 = 1'b0;												// Default is Gorf selected
 
 
@@ -333,8 +333,8 @@ wire [7:0] joyd_paddle = 8'd128 + $signed(~joystick_a1[15:8]);
 
 // ebases
 wire [7:0] ct0_eb = {2'd3,~B2_S,~B1_S,2'd3,~B1_F,~B2_F};
-wire [7:0] ct1_eb = {1'b1,sw[0][0],1'b1,sw[0][1],3'd7,~B1_C};
-wire [7:0] ct3_eb = track_select[0] ? p1_LR : p1_UD;
+wire [7:0] ct1_eb = {1'b1,sw[0][1],1'b1,sw[0][1],3'd7,~B1_C}; // use same DIP for both as manual says to change two jumpers
+wire [7:0] ct3_eb = track_select[1] ? (track_select[0] ? p2_LR : p2_UD) : (track_select[0] ? p1_LR : p1_UD);
 // Seawolf 2
 wire [7:0] ct0_sw2 = {B2_F, 1'b1, pos_data2[5:0]};
 wire [7:0] ct1_sw2 = {B1_F, sw[0][0], pos_data1[5:0]}; 
@@ -403,8 +403,11 @@ wire        Votrax_Status;
 
 // combine speech and SFX (speech seems much louder, so turn it down in comparison to SFX)
 // Also turn down WOW main audio as far louder than speech
-wire [15:0] Sum_L = {1'd0, audio_l, audio_l[7:2]} + {2'd0,sample_l[15:2]}; 
-wire [15:0] Sum_R = {1'd0, audio_r, audio_r[7:2]} + {2'd0,sample_r[15:2]}; 
+// Use full range, clip if over 65535
+wire [16:0] Work_L = {1'd0,audio_l, audio_l[7:1]} + {2'd0,sample_l[15:1]}; 
+wire [16:0] Work_R = {1'd0,audio_r, audio_r[7:1]} + {2'd0,sample_r[15:1]}; 
+wire [15:0] Sum_L = Work_L[16] ? 16'd65535 : Work_L[15:0];
+wire [15:0] Sum_R = Work_R[16] ? 16'd65535 : Work_R[15:0];
 
 assign AUDIO_L = OnlySamples ? sample_l : PlusSamples ? Sum_L : {audio_l, audio_l};
 assign AUDIO_R = OnlySamples ? sample_r : PlusSamples ? Sum_R : Stereo ? {audio_r, audio_r} : {audio_l, audio_l};
@@ -497,7 +500,7 @@ end
 //quoted: 160/320, 102/204
 wire no_rotate =  status[2] | direct_video | ~mod_gorf;
 
-arcade_video #(.WIDTH(360), .DW(12), .GAMMA(1)) arcade_video
+arcade_video #(.WIDTH(360), .DW(24), .GAMMA(1)) arcade_video
 (
 	.*,
 
@@ -620,45 +623,45 @@ dpram #(15) rom  // 8000-CFFF (and D000-EFFF)
 
 ///////////////////// Game specific routines  ////////////////////////////
 
-reg [3:0] O_R,O_G,O_B;
+reg [7:0] O_R,O_G,O_B;
 
 always @(posedge MY_CLK_VIDEO) begin
 	// Blank screen edges
 	if ((MyVCount >= 260) || (MyVCount <= 21) || (HCount <= 70)) begin
-		O_R <= 4'd0;
-		O_B <= 4'd0;
-		O_G <= 4'd0;
+		O_R <= 8'd0;
+		O_B <= 8'd0;
+		O_G <= 8'd0;
 	end
 	else begin
-		O_R <= R;
-		O_B <= B;
-		O_G <= G;
+		O_R <= {R,R};
+		O_B <= {B,B};
+		O_G <= {G,G};
 
 		// Seawolf II - Draw scopes (since original has moving periscope)
 		if (mod_seawolf2) begin
 			if ((MyVCount > 57-15) && (MyVCount < 57+15)) begin
 				// Scope for P1
 				if ((MyVCount == 57) && (HCount > (pos_posi1 - 15)) && (HCount < (pos_posi1 + 15))) begin
-					O_R <= 4'd15;
-					O_B <= 4'd0;
-					O_G <= 4'd15;
+					O_R <= 8'd255;
+					O_B <= 8'd0;
+					O_G <= 8'd255;
 				end
 				if (HCount == pos_posi1) begin
-					O_R <= 4'd15;
-					O_B <= 4'd0;
-					O_G <= 4'd15;
+					O_R <= 8'd255;
+					O_B <= 8'd0;
+					O_G <= 8'd255;
 				end
 				// Scope for P2
 				if (sw[0][2]) begin
 					if ((MyVCount == 57) && (HCount > (pos_posi2 - 15)) && (HCount < (pos_posi2 + 15))) begin
-						O_R <= 4'd15;
-						O_B <= 4'd0;
-						O_G <= 4'd0;
+						O_R <= 8'd255;
+						O_B <= 8'd0;
+						O_G <= 8'd0;
 					end
 					if (HCount == pos_posi2) begin
-						O_R <= 4'd15;
-						O_B <= 4'd0;
-						O_G <= 4'd0;
+						O_R <= 8'd255;
+						O_B <= 8'd0;
+						O_G <= 8'd0;
 					end
 				end
 			end
@@ -668,20 +671,29 @@ always @(posedge MY_CLK_VIDEO) begin
 		if (mod_spacezap) begin
 			if (sw[0][1] == 1'd1) begin
 				if ((G == 4'd15) && (B == 4'd4)) begin
-					O_R <= 4'd14;
-					O_G <= 4'd14;
-					O_B <= 4'd14;
+					O_R <= 8'd238;
+					O_G <= 8'd238;
+					O_B <= 8'd238;
 				end
 				if (B == 4'd11) begin
-					O_R <= 4'd10;
-					O_G <= 4'd10;
-					O_B <= 4'd10;
+					O_R <= 8'd170;
+					O_G <= 8'd170;
+					O_B <= 8'd170;
 				end
 				if (G == 4'd04) begin
-					O_R <= 4'd8;
-					O_G <= 4'd8;
-					O_B <= 4'd8;
+					O_R <= 8'd136;
+					O_G <= 8'd136;
+					O_B <= 8'd136;
 				end
+			end
+		end
+		
+		if (mod_ebase) begin
+			// Copy in background data
+			if ((R==4'd0) && (G==4'd0) && (B==4'd0)) begin
+				O_R <= bg_r;
+				O_G <= bg_g;
+				O_B <= bg_b;
 			end
 		end
 	end
@@ -719,6 +731,7 @@ GRAY conversion2
 ///////////////////
 
 reg  [7:0] p1_UD,p1_LR;
+reg  [7:0] p2_UD,p2_LR;
 
 // Use analogue stick to pretend to be rollerball
 
@@ -735,6 +748,21 @@ AnaloguetoDelta P1LRC
 	.addr(joya_paddle[7:4]),
 	.data(p1_LR)
 );
+
+AnaloguetoDelta P2UDC
+(
+	.clk(clk_sys),
+	.addr(joyd_paddle[7:4]),
+	.data(p2_UD)
+);
+
+AnaloguetoDelta P2LRC
+(
+	.clk(clk_sys),
+	.addr(joyc_paddle[7:4]),
+	.data(p2_LR)
+);
+
 
 /////////////////////
 /// Wizard of Wor ///
@@ -784,5 +812,72 @@ WowMapping WP2LRC
 	.dir1(W2_R),
 	.move(W2_F2)
 );
+
+// Background Image for Extra Base
+
+wire bg_download = ioctl_download && (ioctl_index == 3);
+
+reg [7:0] ioctl_dout_r;
+
+always @(posedge clk_sys) 
+begin
+	if(bg_download & ioctl_wr & ~ioctl_addr[0]) ioctl_dout_r <= ioctl_dout[7:0];
+end
+
+spram #(
+	.addr_width(17),
+	.data_width(16)) 
+backdrop(
+	.address(bg_download ? ioctl_addr[17:1] : pic_addr[16:0]),
+	.clock(clk_sys),
+	.data({ioctl_dout_r,ioctl_dout[7:0]}),
+	.wren(bg_download & ioctl_wr & ioctl_addr[0]),	// write every 2nd byte 
+	.q(pic_data)
+	);
+
+wire [15:0] pic_data;
+reg  [16:0] pic_addr;
+reg  [7:0]  bg_r,bg_g,bg_b;
+reg         ScreenFlash;
+
+always @(posedge MY_CLK_VIDEO) begin
+	if(mod_ebase && ~sw[0][2] && sw[0][1]) begin
+		if(ce_pix == 1'd1) begin
+
+			// Check for screen flash pixel
+			if ((MyVCount == 25) && (HCount == 70)) begin // may need to be 69!
+				ScreenFlash <= R[0];
+			end;
+		
+			// Start of screen background
+			if ((MyVCount == 25) && (HCount == 72)) begin
+				pic_addr <= 0;
+			end;
+
+			// Check pixel in range
+			if ((MyVCount >= 255) || (MyVCount <= 24) || (HCount >= 433) || (HCount <= 72)) begin
+				{bg_b,bg_g,bg_r} <= 0;
+			end
+			else begin
+				if ((HCount >= 74) && (HCount <= 93) && (ScreenFlash == 1'd1)) begin
+					bg_r <=  8'd255;
+					bg_g <=  8'd255;
+					bg_b <=  8'd255;
+				end
+				else begin
+					// Data packed 565 bit colour
+					bg_r <= {pic_data[15:11],3'd7};
+					bg_g <= {pic_data[10:5],2'd3};
+					bg_b <= {pic_data[4:0],3'd7};
+				end;
+				
+				pic_addr <= pic_addr + 1'd1;
+			end;			
+		end
+	end
+	else begin
+		{bg_b,bg_g,bg_r} <= 0;
+	end
+end
 
 endmodule
