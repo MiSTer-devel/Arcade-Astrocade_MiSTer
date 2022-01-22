@@ -28,7 +28,7 @@ module WoWSound
 );
 
 
-`ifdef USE_FB
+`ifdef MISTER_FB
 
 	// If frame buffer is being used, then samples are in SDRAM
 
