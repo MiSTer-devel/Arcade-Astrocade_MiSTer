@@ -61,7 +61,7 @@ module emu
 	input         RESET,
 
 	//Must be passed to hps_io module
-	inout  [47:0] HPS_BUS,
+	inout  [48:0] HPS_BUS,
 
 	//Base video clock. Usually equals to CLK_SYS.
 	output        CLK_VIDEO,
@@ -433,6 +433,7 @@ wire        wave_rd;
 //wire        wav_want_byte;
 wire        wav_data_ready;
 wire        Votrax_Status;
+reg	      GorfSpeech = 0;
 
 // combine speech and SFX (speech seems much louder, so turn it down in comparison to SFX)
 // Also turn down WOW main audio as far louder than speech
@@ -442,8 +443,16 @@ wire [16:0] Work_R = {1'd0,audio_r, audio_r[7:1]} + {2'd0,sample_r[15:1]};
 wire [15:0] Sum_L = Work_L[16] ? 16'd65535 : Work_L[15:0];
 wire [15:0] Sum_R = Work_R[16] ? 16'd65535 : Work_R[15:0];
 
-assign AUDIO_L = OnlySamples ? sample_l : PlusSamples ? Sum_L : {audio_l, audio_l};
-assign AUDIO_R = OnlySamples ? sample_r : PlusSamples ? Sum_R : Stereo ? {audio_r, audio_r} : {audio_l, audio_l};
+// Gorf cabinet specific
+// Top speaker plays sound from one sound chip
+// lower speaker is either second sound chip or SC01 (switched by IO port)
+wire GorfCabinet = mod_gorf && sw[0][0];
+
+// assign AUDIO_L = OnlySamples ? sample_l : PlusSamples ? Sum_L : {audio_l, audio_l};
+assign AUDIO_L = GorfCabinet ? {audio_l, audio_l} : OnlySamples ? sample_l : PlusSamples ? Sum_L : {audio_l, audio_l};
+
+//assign AUDIO_R = OnlySamples ? sample_r : PlusSamples ? Sum_R : Stereo ? {audio_r, audio_r} : {audio_l, audio_l};
+assign AUDIO_R = GorfCabinet ? (GorfSpeech ? sample_r : {audio_r, audio_r}) : OnlySamples ? sample_r : PlusSamples ? Sum_R : Stereo ? {audio_r, audio_r} : {audio_l, audio_l};
 
 `ifdef MISTER_FB
 
@@ -558,6 +567,7 @@ arcade_video #(.WIDTH(360), .DW(24), .GAMMA(1)) arcade_video
 screen_rotate screen_rotate
 (
 	.*,
+	.video_rotated(),
 	.rotate_ccw(1)
 );
 
@@ -574,6 +584,7 @@ BALLY bally
 	// Audio
 	.O_AUDIO_L      (audio_l), //  : out   std_logic_vector(7 downto 0);
 	.O_AUDIO_R      (audio_r), //  : out   std_logic_vector(7 downto 0);
+	.O_SPEECH       (GorfSpeech), 
 
 	// Video
 	.O_VIDEO_R      (R), //    : out   std_logic_vector(3 downto 0);

@@ -29,6 +29,9 @@ entity BALLY_SPARKLE is
 	 I_CODE            : in   std_logic_vector(1 downto  0);
 	 O_LUMA            : out  std_logic_vector(4 downto  0);
 	 
+	 -- Speech info
+	 O_SPEECH          : out  std_logic;
+	 
     -- clks
     I_CPU_ENA         : in   std_logic; -- cpu clock ena
     ENA               : in   std_logic;
@@ -69,10 +72,13 @@ begin
 		if ((I_RD_L = '0') and (I_IORQ_L = '0') and (I_M1_L = '1') and (cs_r = '1')) then
 		  -- write to sparkle registers in high byte
         case I_MXA(11 downto 9) is
+			 -- 000 and 001 are coin counters
           when "010" => Sparkle_en(0) <= (I_MXA(8)='0'); 
           when "011" => Sparkle_en(1) <= (I_MXA(8)='0'); 
           when "100" => Sparkle_en(2) <= (I_MXA(8)='0'); 
           when "101" => Sparkle_en(3) <= (I_MXA(8)='0'); 
+			 -- Speech or Sound flag for Gorf
+			 when "110" => O_SPEECH <= I_MXA(8);
           when others => null;
         end case;
       end if;

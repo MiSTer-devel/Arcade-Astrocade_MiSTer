@@ -9,6 +9,7 @@
 --                  - Sound chip now matches documentation (and sounds better)
 -- V 1.4 18/10/2020 - WOW Speech added - Reggs
 -- V 1.5 24/10/2020 - Gorf Program 1 added as an option (includes speech) - Reggs
+-- V 1.6 16/02/2022 - Add Gorf audio option for cabinet or screens
 -- 
 ------------------------------------------------------------------------------------
 -- From FPGA implementation of the Bally Astrocade based on a project by MikeJ et al
@@ -70,6 +71,10 @@
 -- Gorf
 -- ----
 -- SC-01A speech implemented using words recorded as samples
+-- Sound options 
+--      Stereo will play voice samples on both channels
+--      Cabinet will play one channel through top speaker, other channel or voice samples
+--          through bottom speaker. (as per original hardware) 
 ---------------------------------------------------------------------------------
 
                                 *** Attention ***

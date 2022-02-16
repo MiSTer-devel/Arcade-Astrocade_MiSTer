@@ -52,6 +52,7 @@ entity BALLY is
 	GORF1			   : in    std_logic; -- 0 = Gorf, 1 = Gorfprgm1
     O_AUDIO_L          : out   std_logic_vector(7 downto 0);
 	O_AUDIO_R          : out   std_logic_vector(7 downto 0);
+	O_SPEECH           : out   std_logic;
 
     O_VIDEO_R          : out   std_logic_vector(3 downto 0);
     O_VIDEO_G          : out   std_logic_vector(3 downto 0);
@@ -599,7 +600,11 @@ begin
 	 -- Screen Info
 	I_SCREENSTART     => vsync,
 	I_CODE            => serial,
-    O_LUMA            => luma,
+   O_LUMA            => luma,
+	 
+	-- Speech or Sound flag for Gorf
+	O_SPEECH          => O_SPEECH,
+	
 	-- clks
 	I_CPU_ENA         => cpu_ena, -- cpu clock ena
 	ENA               => ENA,
