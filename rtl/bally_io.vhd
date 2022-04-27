@@ -72,10 +72,9 @@ entity BALLY_IO is
     O_SWITCH          : out   std_logic_vector( 7 downto 0);
     I_SWITCH          : in    std_logic_vector( 7 downto 0);
     -- audio
-    O_AUDIO           : out   std_logic_vector( 7 downto 0);
+    O_AUDIO           : out   std_logic_vector( 5 downto 0);
     -- clks
     I_CPU_ENA         : in    std_logic;
-    I_PIX_ENA         : in    std_logic; -- real chip doesn't get pixel clock
     ENA               : in    std_logic;
     CLK               : in    std_logic
     );
@@ -451,9 +450,9 @@ begin
         sum   := ('0' & sum01)  + ('0' & sum23);
 
         if (I_RESET_L = '0') then
-          O_AUDIO <= "00000000";
+          O_AUDIO <= "000000";
         else
-          O_AUDIO <= (sum & "00");
+          O_AUDIO <= sum;
         end if;
       end if;
    end if;

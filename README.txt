@@ -10,6 +10,7 @@
 -- V 1.4 18/10/2020 - WOW Speech added - Reggs
 -- V 1.5 24/10/2020 - Gorf Program 1 added as an option (includes speech) - Reggs
 -- V 1.6 16/02/2022 - Add Gorf audio option for cabinet or screens
+-- V 1.7 27/04/2022 - Tidy up audio mixing, fix glitch on gorf cabinet mode
 -- 
 ------------------------------------------------------------------------------------
 -- From FPGA implementation of the Bally Astrocade based on a project by MikeJ et al

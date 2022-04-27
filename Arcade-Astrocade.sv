@@ -422,37 +422,45 @@ wire B2_FB =joystick_1[5];
 ////////////////////////////  SOUND  ////////////////////////////////////
 
 // Sound Chip
-wire [7:0] audio_l;
-wire [7:0] audio_r;
+wire [15:0] l_audio;
+wire [15:0] r_audio;
+
 // Samples
 wire [15:0] sample_l;
 wire [15:0] sample_r;
 wire [23:0] wave_addr;
 wire [15:0] wave_data;
 wire        wave_rd;	
-//wire        wav_want_byte;
 wire        wav_data_ready;
 wire        Votrax_Status;
 reg	      GorfSpeech = 0;
 
-// combine speech and SFX (speech seems much louder, so turn it down in comparison to SFX)
-// Also turn down WOW main audio as far louder than speech
-// Use full range, clip if over 65535
-wire [16:0] Work_L = {1'd0,audio_l, audio_l[7:1]} + {2'd0,sample_l[15:1]}; 
-wire [16:0] Work_R = {1'd0,audio_r, audio_r[7:1]} + {2'd0,sample_r[15:1]}; 
-wire [15:0] Sum_L = Work_L[16] ? 16'd65535 : Work_L[15:0];
-wire [15:0] Sum_R = Work_R[16] ? 16'd65535 : Work_R[15:0];
+// Notes for sound mix
+
+// Samples are unsigned 16 bit, with silence = 32768, shift right gives 15 bit with silence = 16384
+
+// Generated sound is 6 bit converted to 16 bit , silence = 0
+
+// however, Adding 15 bit Sample to 15 bit generated offsets for correct silence. (and never clips!)
+
+wire [16:0] Work_L = {1'd0,l_audio[15:1]} + {2'd0,sample_l[15:1]}; 
+wire [16:0] Work_R = {1'd0,r_audio[15:1]} + {2'd0,sample_r[15:1]}; 
+
 
 // Gorf cabinet specific
-// Top speaker plays sound from one sound chip
-// lower speaker is either second sound chip or SC01 (switched by IO port)
+
+// Top speaker plays just the sound from one sound chip : right channel
+// lower speaker is second sound chip or SC01 (switched by IO port - GorfSpeech) : left channel
+
 wire GorfCabinet = mod_gorf && sw[0][0];
 
-// assign AUDIO_L = OnlySamples ? sample_l : PlusSamples ? Sum_L : {audio_l, audio_l};
-assign AUDIO_L = GorfCabinet ? {audio_l, audio_l} : OnlySamples ? sample_l : PlusSamples ? Sum_L : {audio_l, audio_l};
+// we add 16384 to the sound chip audio to get around the silence offset problem (since we are using both audio sources as 16 bit)
+wire [16:0] CAB_W_L = l_audio + 17'd16384;
+wire [15:0] CAB_L = CAB_W_L[16] ? 16'd65535 : CAB_W_L[15:0];
 
-//assign AUDIO_R = OnlySamples ? sample_r : PlusSamples ? Sum_R : Stereo ? {audio_r, audio_r} : {audio_l, audio_l};
-assign AUDIO_R = GorfCabinet ? (GorfSpeech ? sample_r : {audio_r, audio_r}) : OnlySamples ? sample_r : PlusSamples ? Sum_R : Stereo ? {audio_r, audio_r} : {audio_l, audio_l};
+// Choose relevant sound registers for output
+assign AUDIO_R = GorfCabinet ? r_audio : OnlySamples ? sample_r : PlusSamples ? Work_R : Stereo ? r_audio : l_audio;
+assign AUDIO_L = GorfCabinet ? (GorfSpeech ? {1'd0,sample_l[15:1]} : CAB_L) : OnlySamples ? sample_l : PlusSamples ? Work_L : l_audio;
 
 `ifdef MISTER_FB
 
@@ -582,8 +590,8 @@ BALLY bally
 (
 	.GORF1          (Gorf1),   //-- 0 = Gorf, 1 = Gorfprgm1
 	// Audio
-	.O_AUDIO_L      (audio_l), //  : out   std_logic_vector(7 downto 0);
-	.O_AUDIO_R      (audio_r), //  : out   std_logic_vector(7 downto 0);
+	.O_AUDIO_L      (l_audio), //  : out   std_logic_vector(15 downto 0);
+	.O_AUDIO_R      (r_audio), //  : out   std_logic_vector(15 downto 0);
 	.O_SPEECH       (GorfSpeech), 
 
 	// Video

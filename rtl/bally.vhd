@@ -50,8 +50,8 @@ library ieee;
 entity BALLY is
   port (
 	GORF1			   : in    std_logic; -- 0 = Gorf, 1 = Gorfprgm1
-    O_AUDIO_L          : out   std_logic_vector(7 downto 0);
-	O_AUDIO_R          : out   std_logic_vector(7 downto 0);
+   O_AUDIO_L          : out   std_logic_vector(15 downto 0);
+	O_AUDIO_R          : out   std_logic_vector(15 downto 0);
 	O_SPEECH           : out   std_logic;
 
     O_VIDEO_R          : out   std_logic_vector(3 downto 0);
@@ -276,6 +276,9 @@ architecture RTL of BALLY is
   signal WOW_Sampl_A      : std_logic_vector(23 downto 0);
   signal WOW_Read         : std_logic;
   signal WOW_Votrax       : std_logic;
+  
+  signal Gen_Audio_L      : std_logic_vector(5 downto 0);
+  signal Gen_Audio_R      : std_logic_vector(5 downto 0);
 begin
   --
   -- cpu
@@ -488,6 +491,10 @@ begin
       CLK               => CLK
       );
 
+-- Pack audio to output 16 bit version		
+O_AUDIO_L <= Gen_Audio_L & Gen_Audio_L & Gen_Audio_L(5 downto 2);
+O_AUDIO_R <= Gen_Audio_R & Gen_Audio_R & Gen_Audio_R(5 downto 2);
+		
   -- Pattern board does not touch, so leave as CPU info for now.
   u_io1  : entity work.BALLY_IO
     port map (
@@ -513,11 +520,10 @@ begin
       I_POT_DATA        => I_POT,
 
       -- audio
-      O_AUDIO           => O_AUDIO_L,
+      O_AUDIO           => Gen_Audio_L,
 
       -- clks
       I_CPU_ENA         => cpu_ena,
-      I_PIX_ENA         => pix_ena, -- real chip doesn't get pixel clock
       ENA               => ENA,
       CLK               => CLK
       );
@@ -547,11 +553,10 @@ begin
       I_POT_DATA        => x"00",
 
       -- audio
-      O_AUDIO           => O_AUDIO_R,
+      O_AUDIO           => Gen_Audio_R,
 
       -- clks
       I_CPU_ENA         => cpu_ena,
-      I_PIX_ENA         => pix_ena, -- real chip doesn't get pixel clock
       ENA               => ENA,
       CLK               => CLK
       );
