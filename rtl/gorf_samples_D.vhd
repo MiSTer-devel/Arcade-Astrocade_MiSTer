@@ -388,7 +388,7 @@ architecture RTL of GorfSound_DDRAM is
 						when x"B34A" => snd_play <= 53; 					-- Meet
 						when x"120E" => snd_play <= 54; 					-- Move
 						when x"A920" | x"B395" => snd_play <= 55;			-- My
---						when x"None" => snd_play <= 56; 					-- Near
+						when x"1336" => snd_play <= 56; 					-- Near
 						when x"A8D8" => snd_play <= 57; 					-- Next
 						when x"124B" => snd_play <= 58; 					-- Nice
 						when x"126B" => snd_play <= 59; 					-- No
@@ -436,6 +436,7 @@ architecture RTL of GorfSound_DDRAM is
 			 if Phoneme = "111111" then
 			 	 snd_play <= 87;
 				 snd_starteds <= '0';
+				 audio <= (others => '0');
 			 end if;
 		 end if;
 
@@ -479,7 +480,7 @@ architecture RTL of GorfSound_DDRAM is
 								if s_ready='1' then
 									s_read <= '0';
 									s_addr <= snd_addrs + 1;
-									wave_data(7 downto 0) <= s_data(7 downto 0);
+									wave_data <= "00000000" & s_data(7 downto 0);
 									wave_read_ct <= "011";
 								end if;
 
