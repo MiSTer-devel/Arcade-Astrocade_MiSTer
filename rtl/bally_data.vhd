@@ -80,10 +80,12 @@ entity BALLY_DATA is
     I_LTCHDO          : in    std_logic;
 
     O_SERIAL          : out   std_logic_vector(1 downto 0);
+	 O_COLOUR          : out   std_logic_vector(7 downto 0);
 
-    O_VIDEO_R         : out   std_logic_vector(3 downto 0);
-    O_VIDEO_G         : out   std_logic_vector(3 downto 0);
-    O_VIDEO_B         : out   std_logic_vector(3 downto 0);
+    O_VIDEO_R         : out   std_logic_vector(7 downto 0);
+    O_VIDEO_G         : out   std_logic_vector(7 downto 0);
+    O_VIDEO_B         : out   std_logic_vector(7 downto 0);
+
     O_HSYNC           : out   std_logic;
     O_VSYNC           : out   std_logic;
     O_HBLANK          : out   std_logic;
@@ -236,7 +238,7 @@ architecture RTL of BALLY_DATA is
   signal lflag_e              : std_logic_vector(2 downto 0);
   signal hactv_e              : std_logic_vector(2 downto 0);
   signal col_in               : std_logic_vector(7 downto 0);
-  signal col_out              : std_logic_vector(11 downto 0);
+  signal col_out              : std_logic_vector(23 downto 0);
   -- datapath
   signal done_magic_write     : std_ulogic;
   signal done_magic_write_t1  : std_ulogic;
@@ -764,7 +766,7 @@ begin
   end process;
 
   p_col_sel              : process(video_shifter, video_shifter_lflag, video_shifter_actv,
-                                   r_col, r_backgnd_col)
+                                   r_col, r_backgnd_col,col_in)
     variable sel : std_logic_vector(2 downto 0);
   begin
     if (video_shifter_actv = '0') then
@@ -786,13 +788,15 @@ begin
       when others => null;
     end case;
 	 
-	 -- Pallette lookup for Sparkle circuit
+	 -- Pallette lookup for Sparkle circuit and colour code.
 	 O_SERIAL <= sel(1 downto 0);
+    O_COLOUR  <= col_in;
+	 
   end process;
 
   u_col                  : entity work.BALLY_COL_PAL
     port map (
-      ADDR        => col_in,
+      ADDR        => col_in & '0',
       DATA        => col_out
       );
 
@@ -805,13 +809,13 @@ begin
       O_VSYNC <= vsync_t1;
 
       if (sg_blank = '1') then
-        O_VIDEO_R <= "0000";
-        O_VIDEO_G <= "0000";
-        O_VIDEO_B <= "0000";
+        O_VIDEO_R <= "00000000";
+        O_VIDEO_G <= "00000000";
+        O_VIDEO_B <= "00000000";
       else
-        O_VIDEO_R <= col_out(11 downto 8);
-        O_VIDEO_G <= col_out( 7 downto 4);
-        O_VIDEO_B <= col_out( 3 downto 0);
+        O_VIDEO_R <= col_out(23 downto 16);
+        O_VIDEO_G <= col_out(15 downto 8);
+        O_VIDEO_B <= col_out( 7 downto 0);
       end if;
       do_vert_dr_int <= v_1st_actv and do_vert_dr;
       sg_hstart_t1 <= sg_hstart;
