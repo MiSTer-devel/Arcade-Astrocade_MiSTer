@@ -271,7 +271,7 @@ wire        ioctl_wr;
 wire [24:0] ioctl_addr;
 wire [15:0] ioctl_dout;
 wire  [7:0] ioctl_index;
-wire        ioctl_wait;
+wire        ioctl_wait=0;
 
 wire        direct_video;
 
@@ -495,7 +495,7 @@ assign AUDIO_L = GorfCabinet ? (GorfSpeech ? {1'd0,sample_l[15:1]} : CAB_L) : On
 		.addr(wav_load ? {3'd0,ioctl_addr} : {4'd0,wave_addr}),
 		.dout(wave_data[7:0]),
 		.din(ioctl_dout),
-		.we(wav_wr),
+		.we(ioctl_download & wav_wr && (ioctl_index == 2)),		
 		.rd(~ioctl_download & wave_rd),
 		.ready(wav_data_ready)
 	);
@@ -524,7 +524,7 @@ assign AUDIO_L = GorfCabinet ? (GorfSpeech ? {1'd0,sample_l[15:1]} : CAB_L) : On
 ////////////////////////////  VIDEO  ////////////////////////////////////
 
 
-wire [3:0] R, G, B;
+wire [7:0] R, G, B;
 
 reg  HSync;
 reg  VSync;
@@ -686,9 +686,9 @@ always @(posedge MY_CLK_VIDEO) begin
 		O_G <= 8'd0;
 	end
 	else begin
-		O_R <= {R,R};
-		O_B <= {B,B};
-		O_G <= {G,G};
+		O_R <= R;
+		O_B <= B;
+		O_G <= G;
 
 		// Seawolf II - Draw scopes (since original has moving periscope)
 		if (mod_seawolf2) begin
@@ -743,7 +743,7 @@ always @(posedge MY_CLK_VIDEO) begin
 		
 		if (mod_ebase) begin
 			// Copy in background data
-			if ((R==4'd0) && (G==4'd0) && (B==4'd0)) begin
+			if ((R==8'd0) && (G==8'd0) && (B==8'd0)) begin
 				O_R <= bg_r;
 				O_G <= bg_g;
 				O_B <= bg_b;
