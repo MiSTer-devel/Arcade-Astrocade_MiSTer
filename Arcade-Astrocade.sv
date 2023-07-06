@@ -435,6 +435,7 @@ wire        wav_data_ready;
 wire        Votrax_Status;
 reg	      GorfSpeech = 0;
 
+
 // Notes for sound mix
 
 // Samples are unsigned 16 bit, with silence = 32768, shift right gives 15 bit with silence = 16384
@@ -459,8 +460,13 @@ wire [16:0] CAB_W_L = l_audio + 17'd16384;
 wire [15:0] CAB_L = CAB_W_L[16] ? 16'd65535 : CAB_W_L[15:0];
 
 // Choose relevant sound registers for output
-assign AUDIO_R = GorfCabinet ? r_audio : OnlySamples ? sample_r : PlusSamples ? Work_R : Stereo ? r_audio : l_audio;
-assign AUDIO_L = GorfCabinet ? (GorfSpeech ? {1'd0,sample_l[15:1]} : CAB_L) : OnlySamples ? sample_l : PlusSamples ? Work_L : l_audio;
+wire [15:0] MyRight = GorfCabinet ? r_audio : OnlySamples ? sample_r : PlusSamples ? Work_R : Stereo ? r_audio : l_audio;
+wire [15:0] MyLeft  = GorfCabinet ? (GorfSpeech ? {1'd0,sample_l[15:1]} : CAB_L) : OnlySamples ? sample_l : PlusSamples ? Work_L : l_audio;
+
+// Allow use of DIP to swop channels
+assign AUDIO_L = sw[0][1] ? MyRight : MyLeft;
+assign AUDIO_R = sw[0][1] ? MyLeft : MyRight;
+
 
 `ifdef MISTER_FB
 
@@ -932,5 +938,105 @@ always @(posedge MY_CLK_VIDEO) begin
 		{bg_b,bg_g,bg_r} <= 0;
 	end
 end
+
+
+// Cabinet specific routines
+
+`ifdef CABINET
+
+// Gorf - control lights
+
+// 74257 connected with DAT0-2 as Address
+//                      DAT3 as Data
+//                      CMD as /LE
+//
+// Needs mod to sys_top.v to allow access to these lines
+
+reg LastFire;
+reg LastClock;
+
+reg [7:0] Light_Data = 0; // Holds what we want outputs to do
+reg [7:0] LastOutput = 8'd255;
+
+always @(posedge clk_sys) begin
+ if (mod_gorf) begin
+   LastClock <= clk_cpu_ct[1]; // clk_cpu_en;
+	if (!LastClock && clk_cpu_ct[1]) begin
+		// Clear write if set
+		if (L_Write == 1'd0) begin
+			L_Write <= 1'd1;
+		end
+		else begin
+			// See if we need to change anything on the output side
+			if (LastOutput != Light_Data) begin
+				// cycle through until we find a bit that has changed, and output it
+				if (LastOutput[0] != Light_Data[0]) begin
+					L_Address <= 3'd0;
+					L_Data <= Light_Data[0];
+					LastOutput[0] <= Light_Data[0];
+				end
+				else begin
+					if (LastOutput[1] != Light_Data[1]) begin
+						L_Address <= 3'd1;
+						L_Data <= Light_Data[1];
+						LastOutput[1] <= Light_Data[1];
+					end
+					else begin
+						if (LastOutput[2] != Light_Data[2]) begin
+							L_Address <= 3'd2;
+							L_Data <= Light_Data[2];
+							LastOutput[2] <= Light_Data[2];
+						end
+						else begin
+							if (LastOutput[3] != Light_Data[3]) begin
+								L_Address <= 3'd3;
+								L_Data <= Light_Data[3];
+								LastOutput[3] <= Light_Data[3];
+							end
+							else begin
+								if (LastOutput[4] != Light_Data[4]) begin
+									L_Address <= 3'd4;
+									L_Data <= Light_Data[4];
+									LastOutput[4] <= Light_Data[4];
+								end
+								else begin
+									if (LastOutput[5] != Light_Data[5]) begin
+										L_Address <= 3'd5;
+										L_Data <= Light_Data[5];
+										LastOutput[5] <= Light_Data[5];
+									end
+									else begin
+										if (LastOutput[6] != Light_Data[6]) begin
+											L_Address <= 3'd6;
+											L_Data <= Light_Data[6];
+											LastOutput[6] <= Light_Data[6];
+										end
+										else begin
+											if (LastOutput[7] != Light_Data[7]) begin
+												L_Address <= 3'd7;
+												L_Data <= Light_Data[7];
+												LastOutput[7] <= Light_Data[7];
+											end
+										end
+									end
+								end
+							end
+						end
+					end
+				end
+				// Set write line
+				L_Write <= 1'd0;
+			end
+		end
+	end
+ end
+end
+
+// Wizard of Wor - Third sound channel
+
+
+// P2 controls (uses P1 buttons for P2)
+
+`endif
 
 endmodule
