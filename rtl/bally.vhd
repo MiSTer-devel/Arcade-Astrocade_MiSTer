@@ -96,6 +96,7 @@ entity BALLY is
     O_POT              : out   std_logic_vector(3 downto 0);
     I_POT              : in    std_logic_vector(7 downto 0);
 	 O_TRACK_S		     : out   std_logic_vector(1 downto 0);
+	 O_LAMPS				  : out   std_logic_vector(7 downto 0);
 	 --
     I_RESET_L          : in    std_logic;
     ENA                : in    std_logic;
@@ -622,7 +623,30 @@ O_AUDIO_R <= Gen_Audio_R & Gen_Audio_R & Gen_Audio_R(5 downto 2);
 	 
 	-- Speech or Sound flag for Gorf
 	O_SPEECH          => O_SPEECH,
+	 -- Joystick lamp for Gorf
+	O_JLAMP				=> O_LAMPS(7),
 	
+	-- clks
+	I_CPU_ENA         => cpu_ena, -- cpu clock ena
+	ENA               => ENA,
+	CLK               => CLK
+);
+
+  -- Light circuit for Gorf
+  Lamp : entity work.BALLY_LAMPS
+  port map (
+	I_MXA             => cpu_addr,
+	I_MXD             => cpu_data_out,
+
+	-- cpu control signals
+	I_M1_L            => cpu_m1_l,
+	I_RD_L            => cpu_rd_l,
+	I_IORQ_L          => cpu_iorq_l,
+	I_RESET_L         => I_RESET_L,
+
+	 -- Rank Info
+   O_LAMP            => O_LAMPS(5 downto 0),
+
 	-- clks
 	I_CPU_ENA         => cpu_ena, -- cpu clock ena
 	ENA               => ENA,
