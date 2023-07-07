@@ -39,12 +39,12 @@ module ddram
 	output  [7:0] DDRAM_BE,
 	output        DDRAM_WE,
 
-   input  [27:0] addr,        // 256MB at the end of 1GB
-   output  [7:0] dout,        // data output to cpu
-   input   [7:0] din,         // data input from cpu
-   input         we,          // cpu requests write
-   input         rd,          // cpu requests read
-   output        ready        // dout is valid. Ready to accept new read/write.
+	input  [27:0] addr,        // 256MB at the end of 1GB
+	output  [7:0] dout,        // data output to cpu
+	input   [7:0] din,         // data input from cpu
+	input         we,          // cpu requests write
+	input         rd,          // cpu requests read
+	output        ready        // dout is valid. Ready to accept new read/write.
 );
 
 assign DDRAM_BURSTCNT = 1;
@@ -73,8 +73,7 @@ begin
 	reg state;
 
 	old_reset <= reset;
-	if(old_reset && ~reset)
-	begin
+	if(old_reset && ~reset) begin
 		busy   <= 0;
 		state  <= 0;
 		cached <= 0;
@@ -84,10 +83,8 @@ begin
 	begin
 		ram_write <= 0;
 		ram_read  <= 0;
-		if(state)
-		begin
-			if(DDRAM_DOUT_READY)
-			begin
+		if(state) begin
+			if(DDRAM_DOUT_READY) begin
 				ram_q     <= DDRAM_DOUT[{ram_address[2:0], 3'b000} +:8];
 				ram_cache <= DDRAM_DOUT;
 				cached    <= 8'hFF;
@@ -95,35 +92,29 @@ begin
 				busy      <= 0;
 			end
 		end
-		else
-		begin
+		else begin
 			old_rd <= rd;
 			old_we <= we;
 			busy   <= 0;
 
-			if(~old_we && we)
-			begin
+			if(~old_we && we) begin
 				ram_cache[{addr[2:0], 3'b000} +:8] <= din;
 				ram_address <= addr;
 				busy        <= 1;
 				ram_write 	<= 1;
 				cached      <= ((ram_address[27:3] == addr[27:3]) ? cached : 8'h00) | (8'd1<<addr[2:0]);
 			end
-
-			if(~old_rd && rd)
-			begin
-				busy <= 1;
-				if((ram_address[27:3] == addr[27:3]) && (cached & (8'd1<<addr[2:0])))
-				begin
+			else if(~old_rd && rd) begin
+				if((ram_address[27:3] == addr[27:3]) && (cached & (8'd1<<addr[2:0]))) begin
 					ram_q <= ram_cache[{addr[2:0], 3'b000} +:8];
 				end
-				else
-				begin
+				else begin
 					ram_address <= addr;
 					ram_read    <= 1;
 					state       <= 1;
 					cached      <= 0;
 				end
+				busy <= 1;
 			end
 		end
 	end
