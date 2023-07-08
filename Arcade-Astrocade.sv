@@ -83,6 +83,7 @@ module emu
 	output        VGA_F1,
 	output [1:0]  VGA_SL,
 	output        VGA_SCALER, // Force VGA scaler
+	output        VGA_DISABLE, // analog out is off
 
 	input  [11:0] HDMI_WIDTH,
 	input  [11:0] HDMI_HEIGHT,
@@ -199,8 +200,9 @@ module emu
 
 
 ///////// Default values for ports not used in this core /////////
-assign VGA_F1    = 0;
-assign VGA_SCALER= 0;
+assign VGA_F1      = 0;
+assign VGA_SCALER  = 0;
+assign VGA_DISABLE = 0;
 
 assign ADC_BUS  = 'Z;
 assign USER_OUT = '1;
