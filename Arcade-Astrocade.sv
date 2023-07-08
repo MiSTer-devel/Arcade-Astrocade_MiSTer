@@ -185,7 +185,15 @@ module emu
 	// Set USER_OUT to 1 to read from USER_IN.
 	input   [6:0] USER_IN,
 	output  [6:0] USER_OUT,
-	
+
+	// Gorf Cabinet interface to drive ranking lights
+	// Needs mod to sys_top.v to allow access to these
+`ifdef CABINET
+	output [3:0]	L_Address,
+	output         L_Data,   
+	output        	L_Write,
+`endif
+		
 	input         OSD_STATUS
 );
 
@@ -271,7 +279,7 @@ wire        ioctl_wr;
 wire [24:0] ioctl_addr;
 wire [15:0] ioctl_dout;
 wire  [7:0] ioctl_index;
-wire        ioctl_wait=0;
+wire        ioctl_wait;
 
 wire        direct_video;
 
@@ -468,6 +476,10 @@ assign AUDIO_L = sw[0][1] ? MyRight : MyLeft;
 assign AUDIO_R = sw[0][1] ? MyLeft : MyRight;
 
 
+// Samples
+
+wire wav_load = ioctl_download && (ioctl_index == 2);	
+
 `ifdef MISTER_FB
 
 	// If frame buffer is being used, then samples are in SDRAM
@@ -479,7 +491,7 @@ assign AUDIO_R = sw[0][1] ? MyLeft : MyRight;
 		.clk(clk_snd),
 
 		.addr(ioctl_download ? ioctl_addr : {1'b0,wave_addr}),
-		.we(ioctl_download && ioctl_wr && (ioctl_index==2)),
+		.we(wav_load && ioctl_wr),
 		.rd(~ioctl_download & wave_rd),
 		.din(ioctl_dout),
 		.dout(wave_data),
@@ -489,24 +501,26 @@ assign AUDIO_R = sw[0][1] ? MyLeft : MyRight;
 
 `else
 
-	// frame buffer not used, then samples are in DDRAM
+	// If frame buffer not used, then samples are in DDRAM
 
-	wire wav_load = ioctl_download && (ioctl_index == 2);	
 	reg  wav_wr;
 
-	assign DDRAM_CLK = MY_CLK_VIDEO;  // Interleave commands with sample modules
+	assign DDRAM_CLK = clk_snd;  // Interleave commands with sample modules
 	ddram ddram
 	(
 		.*,
 		.addr(wav_load ? {3'd0,ioctl_addr} : {4'd0,wave_addr}),
 		.dout(wave_data[7:0]),
 		.din(ioctl_dout),
-		.we(ioctl_download & wav_wr && (ioctl_index == 2)),		
+		.we(wav_load & wav_wr),		
 		.rd(~ioctl_download & wave_rd),
 		.ready(wav_data_ready)
 	);
 
 	//  signals for DDRAM
+
+	// NOTE: the wav_wr (we) line doesn't want to stay high. It needs to be high to start, and then can't go high until wav_data_ready
+	// we hold the ioctl_wait high (stop the data from HPS) until we get waV_data_ready
 
 	always @(posedge clk_sys) begin
 		reg old_reset;
@@ -588,7 +602,7 @@ screen_rotate screen_rotate
 `endif
 
 reg [15:0] wave_data_reg;
-always @(posedge clk_sys)
+always @(posedge clk_snd)
 	wave_data_reg <= wave_data;
 
 
