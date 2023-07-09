@@ -11,6 +11,11 @@
 -- V 1.5 24/10/2020 - Gorf Program 1 added as an option (includes speech) - Reggs
 -- V 1.6 16/02/2022 - Add Gorf audio option for cabinet or screens
 -- V 1.7 27/04/2022 - Tidy up audio mixing, fix glitch on gorf cabinet mode
+-- V 1.8 06/07/2023 - Colour pallette changed to 24 bit 
+--                    Sparkle circuit changed (removed all custom colour hacks)
+--                    Add lamp support for cabinet mode              
+--                    Fix missing word (near) in Gorf program 1
+--                    Fix samples in DDRAM error
 -- 
 ------------------------------------------------------------------------------------
 -- From FPGA implementation of the Bally Astrocade based on a project by MikeJ et al

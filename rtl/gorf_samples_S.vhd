@@ -384,7 +384,7 @@ architecture RTL of GorfSound_SDRAM is
 						when x"B34A" => snd_play <= 53; 					-- Meet
 						when x"120E" => snd_play <= 54; 					-- Move
 						when x"A920" | x"B395" => snd_play <= 55;			-- My
---						when x"None" => snd_play <= 56; 					-- Near
+						when x"1336" => snd_play <= 56; 					-- Near
 						when x"A8D8" => snd_play <= 57; 					-- Next
 						when x"124B" => snd_play <= 58; 					-- Nice
 						when x"126B" => snd_play <= 59; 					-- No

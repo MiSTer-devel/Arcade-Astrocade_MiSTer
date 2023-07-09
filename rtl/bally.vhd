@@ -54,9 +54,9 @@ entity BALLY is
 	O_AUDIO_R          : out   std_logic_vector(15 downto 0);
 	O_SPEECH           : out   std_logic;
 
-    O_VIDEO_R          : out   std_logic_vector(3 downto 0);
-    O_VIDEO_G          : out   std_logic_vector(3 downto 0);
-    O_VIDEO_B          : out   std_logic_vector(3 downto 0);
+    O_VIDEO_R          : out   std_logic_vector(7 downto 0);
+    O_VIDEO_G          : out   std_logic_vector(7 downto 0);
+    O_VIDEO_B          : out   std_logic_vector(7 downto 0);
     O_CE_PIX           : out   std_logic;
     O_HBLANK_V         : out   std_logic;
     O_VBLANK_V         : out   std_logic;
@@ -96,6 +96,7 @@ entity BALLY is
     O_POT              : out   std_logic_vector(3 downto 0);
     I_POT              : in    std_logic_vector(7 downto 0);
 	 O_TRACK_S		     : out   std_logic_vector(1 downto 0);
+	 O_LAMPS				  : out   std_logic_vector(7 downto 0);
 	 --
     I_RESET_L          : in    std_logic;
     ENA                : in    std_logic;
@@ -229,9 +230,11 @@ architecture RTL of BALLY is
   signal rom_dout         : std_logic_vector(7 downto 0);
   signal cas_cs_l         : std_logic;
 
-  signal video_r          : std_logic_vector(3 downto 0);
-  signal video_g          : std_logic_vector(3 downto 0);
-  signal video_b          : std_logic_vector(3 downto 0);
+  signal video_r          : std_logic_vector(7 downto 0);
+  signal video_g          : std_logic_vector(7 downto 0);
+  signal video_b          : std_logic_vector(7 downto 0);
+  signal video_colour     : std_logic_vector(7 downto 0);
+  signal video_colour_t   : std_logic_vector(7 downto 0);
   signal hsync            : std_logic;
   signal vsync            : std_logic;
   signal fpsync           : std_logic;
@@ -254,8 +257,7 @@ architecture RTL of BALLY is
   signal mux_pat_out      : std_logic_vector(7 downto 0);
   signal mux_int          : std_logic;
   
-  signal luma             : std_logic_vector(4 downto 0);
-  signal luma_t           : std_logic_vector(4 downto 0);
+  signal sparkled         : std_logic;
   signal backcol          : std_logic_vector(11 downto 0);
   signal lightpen_h       : std_logic_vector(7 downto 0);	
   signal lightpen_v       : std_logic_vector(7 downto 0);	
@@ -279,6 +281,12 @@ architecture RTL of BALLY is
   
   signal Gen_Audio_L      : std_logic_vector(5 downto 0);
   signal Gen_Audio_R      : std_logic_vector(5 downto 0);
+  
+  -- Sparkled Colour
+  signal s_red				  : std_logic_vector(7 downto 0);
+  signal s_green			  : std_logic_vector(7 downto 0);
+  signal s_blue			  : std_logic_vector(7 downto 0);
+  
 begin
   --
   -- cpu
@@ -469,6 +477,7 @@ begin
       I_LTCHDO          => ltchdo,
 
       O_SERIAL          => serial,
+		O_COLOUR          => video_colour,
 
       O_VIDEO_R         => video_r,
       O_VIDEO_G         => video_g,
@@ -580,8 +589,8 @@ O_AUDIO_R <= Gen_Audio_R & Gen_Audio_R & Gen_Audio_R(5 downto 2);
       I_IORQ_L          => cpu_iorq_l,
       I_RESET_L         => I_RESET_L,
       I_WAIT_L          => cpu_wait_l,
-	  I_BUSACK_L        => cpu_busak_l,
- 	  O_BUSRQ_L         => cpu_busrq_l,
+	   I_BUSACK_L        => cpu_busak_l,
+ 	   O_BUSRQ_L         => cpu_busrq_l,
 
 		-- clks
       I_CPU_ENA         => cpu_ena_gated, -- cpu clock ena
@@ -601,15 +610,43 @@ O_AUDIO_R <= Gen_Audio_R & Gen_Audio_R & Gen_Audio_R(5 downto 2);
 	I_RD_L            => cpu_rd_l,
 	I_IORQ_L          => cpu_iorq_l,
 	I_RESET_L         => I_RESET_L,
-
+	 
 	 -- Screen Info
 	I_SCREENSTART     => vsync,
 	I_CODE            => serial,
-   O_LUMA            => luma,
+	I_COLOUR          => video_colour,
+   O_ACTIVE          => sparkled,
+
+	O_VIDEO_R         => s_red,
+   O_VIDEO_G         => s_green,
+   O_VIDEO_B         => s_blue,
 	 
 	-- Speech or Sound flag for Gorf
 	O_SPEECH          => O_SPEECH,
+	 -- Joystick lamp for Gorf
+	O_JLAMP				=> O_LAMPS(7),
 	
+	-- clks
+	I_CPU_ENA         => cpu_ena, -- cpu clock ena
+	ENA               => ENA,
+	CLK               => CLK
+);
+
+  -- Light circuit for Gorf
+  Lamp : entity work.BALLY_LAMPS
+  port map (
+	I_MXA             => cpu_addr,
+	I_MXD             => cpu_data_out,
+
+	-- cpu control signals
+	I_M1_L            => cpu_m1_l,
+	I_RD_L            => cpu_rd_l,
+	I_IORQ_L          => cpu_iorq_l,
+	I_RESET_L         => I_RESET_L,
+
+	 -- Rank Info
+   O_LAMP            => O_LAMPS(5 downto 0),
+
 	-- clks
 	I_CPU_ENA         => cpu_ena, -- cpu clock ena
 	ENA               => ENA,
@@ -624,180 +661,20 @@ O_AUDIO_R <= Gen_Audio_R & Gen_Audio_R & Gen_Audio_R(5 downto 2);
       O_HSYNC <= hsync;
       O_VSYNC <= vsync;
       O_COMP_SYNC_L <= (not vsync) and (not hsync);
-
-		-- No sparkle or this colour not sparkled
-		if I_SPARKLE='0' or luma_t(4)='0' then
-			-- Patch Gorf background colour (looks more like real machine)
-			if I_GORF='1' and (video_r & video_g & video_b)=x"0AD" then
-				O_VIDEO_R <= video_r;
-				O_VIDEO_G <= x"4";
-				O_VIDEO_B <= video_b;
-			else
+		
+		if I_SPARKLE='0' or sparkled='0' then
+				-- No sparkle in game or this colour not sparkled
 				O_VIDEO_R <= video_r;
 				O_VIDEO_G <= video_g;
 				O_VIDEO_B <= video_b;
-			end if;
 		else
-			 -- hardware injects 4 levels into Y line, thus increasing luminosity
-			 -- It can also clamp Y line to GND, thus blacking it out
-			 -- this is not so easy to do in RGB land, so use custom colours to look more like real hardware
-			 case (video_r & video_g & video_b) is
-				
-				when x"999" =>		-- Gorf Stars
-					if luma_t(3)='0' then
-						if luma_t(2 downto 0)="000" then
-							O_VIDEO_R <= "0000";
-							O_VIDEO_G <= "0000";
-							O_VIDEO_B <= "0000";
-						else
-							O_VIDEO_R <= video_r;
-							O_VIDEO_G <= video_g;
-							O_VIDEO_B <= video_b;
-						end if;
-					else
-						O_VIDEO_R <= luma_t(3 downto 0);
-						O_VIDEO_G <= luma_t(3 downto 0);
-						O_VIDEO_B <= luma_t(3 downto 0);
-					end if;
-
---				when x"3FF" =>		-- WoW Stars
---					if luma_t(3)='0' then
---						if luma_t(2 downto 0)="000" then
---							O_VIDEO_R <= "0000";
---							O_VIDEO_G <= "0000";
---							O_VIDEO_B <= "0000";
---						else
---							O_VIDEO_R <= video_r;
---							O_VIDEO_G <= video_g;
---							O_VIDEO_B <= video_b;
---						end if;
---					else
---						O_VIDEO_R <= '0' & luma_t(3 downto 1);
---						O_VIDEO_G <= x"F";
---						O_VIDEO_B <= x"F";
---					end if;
-					
---				when x"F02" | x"F00" =>		-- Gorf space invader Red / WoW Red
-				when x"F02" | x"F00"| x"F06" =>		-- Gorf space invader Red / WoW Red
-					case luma_t(3 downto 0) is
-						when "0000" => 
-							O_VIDEO_R <= "0000";
-							O_VIDEO_G <= "0000";
-							O_VIDEO_B <= "0000";
-						when "0111" =>
-							O_VIDEO_R <= "1111";
-							O_VIDEO_G <= "0010";
-							O_VIDEO_B <= "0011";
-						when "1000" =>
-							O_VIDEO_R <= "1111";
-							O_VIDEO_G <= "0011";
-							O_VIDEO_B <= "0100";
-						when "1001" =>
-							O_VIDEO_R <= "1111";
-							O_VIDEO_G <= "0100";
-							O_VIDEO_B <= "0101";
-						when "1010" =>
-							O_VIDEO_R <= "1111";
-							O_VIDEO_G <= "0101";
-							O_VIDEO_B <= "0111";
-						when "1011" =>
-							O_VIDEO_R <= "1111";
-							O_VIDEO_G <= "0110";
-							O_VIDEO_B <= "1000";
-						when "1100" =>
-							O_VIDEO_R <= "1111";
-							O_VIDEO_G <= "0111";
-							O_VIDEO_B <= "1001";
-						when "1101" =>
-							O_VIDEO_R <= "1111";
-							O_VIDEO_G <= "1000";
-							O_VIDEO_B <= "1010";
-						when "1110" =>
-							O_VIDEO_R <= "1111";
-							O_VIDEO_G <= "1001";
-							O_VIDEO_B <= "1011";
-						when "1111" =>
-							O_VIDEO_R <= "1111";
-							O_VIDEO_G <= "1010";
-							O_VIDEO_B <= "1100";
-						when others =>
-							O_VIDEO_R <= "1111";
-							O_VIDEO_G <= "0001";
-							O_VIDEO_B <= "0010";
-					end case;
-					
-				when x"F14" | x"F44" =>	-- Gorf flagship red
-					case luma_t(3 downto 0) is
-						when "0000" => 
-							O_VIDEO_R <= x"0";
-							O_VIDEO_G <= x"0";
-							O_VIDEO_B <= x"0";
-						when "0111" =>
-							O_VIDEO_R <= x"E";
-							O_VIDEO_G <= x"2";
-							O_VIDEO_B <= x"0";
-						when "1000" =>
-							O_VIDEO_R <= x"F";
-							O_VIDEO_G <= x"4";
-							O_VIDEO_B <= x"0";
-						when "1001" =>
-							O_VIDEO_R <= x"F";
-							O_VIDEO_G <= x"5";
-							O_VIDEO_B <= x"0";
-						when "1010" =>
-							O_VIDEO_R <= x"F";
-							O_VIDEO_G <= x"6";
-							O_VIDEO_B <= x"1";
-						when "1011" =>
-							O_VIDEO_R <= x"F";
-							O_VIDEO_G <= x"7";
-							O_VIDEO_B <= x"1";
-						when "1100" =>
-							O_VIDEO_R <= x"F";
-							O_VIDEO_G <= x"8";
-							O_VIDEO_B <= x"2";
-						when "1110" | "1111" =>
-							O_VIDEO_R <= x"D";
-							O_VIDEO_G <= x"1";
-							O_VIDEO_B <= x"0";
-						when others =>
-							O_VIDEO_R <= x"A";
-							O_VIDEO_G <= x"0";
-							O_VIDEO_B <= x"0";
-					end case;
-					
-				WHEN x"fff" => -- Gorf shield - Invaders
-					if luma_t(3) ='1' then
-						O_VIDEO_R <= "1111";
-						O_VIDEO_G <= "1111";
-						O_VIDEO_B <= "1111";
-					else
-						O_VIDEO_R <= X"0"; -- patched colour table to match
-						O_VIDEO_G <= X"4";
-						O_VIDEO_B <= X"D";
-					end if;
-					backcol <= x"04D"; -- matches patched colour
-					
-				when others =>  -- colour fades between screens
-
-				  if video_r & video_g & video_b = X"000" then
-						backcol <= x"000";
-				  end if;
-				  
-				  if luma_t(3 downto 0) = "0000" then
-						-- on one gorf screen goes to background colour instead so we set backcol especially for that!
-						O_VIDEO_R <= backcol(11 downto 8);
-						O_VIDEO_G <= backcol(7 downto 4);
-						O_VIDEO_B <= backcol(3 downto 0);
-				  else
-					   O_VIDEO_R <= (video_r and luma_t(3 downto 0));
-					   O_VIDEO_G <= (video_g and luma_t(3 downto 0));
-					   O_VIDEO_B <= (video_b and luma_t(3 downto 0));
-				  end if;
-			end case;
+			 -- Colour of Sparkled pixel
+			O_VIDEO_R <= s_red;
+			O_VIDEO_G <= s_green;
+			O_VIDEO_B <= s_blue;
 		end if;
-      O_FPSYNC  <= fpsync;
-		luma_t <= luma; -- delay 1 cycle
+		
+      O_FPSYNC  <= fpsync;		
     end if;
   end process;
 

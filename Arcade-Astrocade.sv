@@ -83,6 +83,7 @@ module emu
 	output        VGA_F1,
 	output [1:0]  VGA_SL,
 	output        VGA_SCALER, // Force VGA scaler
+	output        VGA_DISABLE, // analog out is off
 
 	input  [11:0] HDMI_WIDTH,
 	input  [11:0] HDMI_HEIGHT,
@@ -185,14 +186,23 @@ module emu
 	// Set USER_OUT to 1 to read from USER_IN.
 	input   [6:0] USER_IN,
 	output  [6:0] USER_OUT,
-	
+
+	// Gorf Cabinet interface to drive ranking lights
+	// Needs mod to sys_top.v to allow access to these
+`ifdef CABINET
+	output [3:0]	L_Address,
+	output         L_Data,   
+	output        	L_Write,
+`endif
+		
 	input         OSD_STATUS
 );
 
 
 ///////// Default values for ports not used in this core /////////
-assign VGA_F1    = 0;
-assign VGA_SCALER= 0;
+assign VGA_F1      = 0;
+assign VGA_SCALER  = 0;
+assign VGA_DISABLE = 0;
 
 assign ADC_BUS  = 'Z;
 assign USER_OUT = '1;
@@ -435,6 +445,7 @@ wire        wav_data_ready;
 wire        Votrax_Status;
 reg	      GorfSpeech = 0;
 
+
 // Notes for sound mix
 
 // Samples are unsigned 16 bit, with silence = 32768, shift right gives 15 bit with silence = 16384
@@ -459,8 +470,17 @@ wire [16:0] CAB_W_L = l_audio + 17'd16384;
 wire [15:0] CAB_L = CAB_W_L[16] ? 16'd65535 : CAB_W_L[15:0];
 
 // Choose relevant sound registers for output
-assign AUDIO_R = GorfCabinet ? r_audio : OnlySamples ? sample_r : PlusSamples ? Work_R : Stereo ? r_audio : l_audio;
-assign AUDIO_L = GorfCabinet ? (GorfSpeech ? {1'd0,sample_l[15:1]} : CAB_L) : OnlySamples ? sample_l : PlusSamples ? Work_L : l_audio;
+wire [15:0] MyRight = GorfCabinet ? r_audio : OnlySamples ? sample_r : PlusSamples ? Work_R : Stereo ? r_audio : l_audio;
+wire [15:0] MyLeft  = GorfCabinet ? (GorfSpeech ? {1'd0,sample_l[15:1]} : CAB_L) : OnlySamples ? sample_l : PlusSamples ? Work_L : l_audio;
+
+// Allow use of DIP to swop channels
+assign AUDIO_L = sw[0][1] ? MyRight : MyLeft;
+assign AUDIO_R = sw[0][1] ? MyLeft : MyRight;
+
+
+// Samples
+
+wire wav_load = ioctl_download && (ioctl_index == 2);	
 
 `ifdef MISTER_FB
 
@@ -473,7 +493,7 @@ assign AUDIO_L = GorfCabinet ? (GorfSpeech ? {1'd0,sample_l[15:1]} : CAB_L) : On
 		.clk(clk_snd),
 
 		.addr(ioctl_download ? ioctl_addr : {1'b0,wave_addr}),
-		.we(ioctl_download && ioctl_wr && (ioctl_index==2)),
+		.we(wav_load && ioctl_wr),
 		.rd(~ioctl_download & wave_rd),
 		.din(ioctl_dout),
 		.dout(wave_data),
@@ -483,24 +503,26 @@ assign AUDIO_L = GorfCabinet ? (GorfSpeech ? {1'd0,sample_l[15:1]} : CAB_L) : On
 
 `else
 
-	// frame buffer not used, then samples are in DDRAM
+	// If frame buffer not used, then samples are in DDRAM
 
-	wire wav_load = ioctl_download && (ioctl_index == 2);	
 	reg  wav_wr;
 
-	assign DDRAM_CLK = MY_CLK_VIDEO;  // Interleave commands with sample modules
+	assign DDRAM_CLK = clk_snd;  // Interleave commands with sample modules
 	ddram ddram
 	(
 		.*,
 		.addr(wav_load ? {3'd0,ioctl_addr} : {4'd0,wave_addr}),
 		.dout(wave_data[7:0]),
 		.din(ioctl_dout),
-		.we(wav_wr),
+		.we(wav_load & wav_wr),		
 		.rd(~ioctl_download & wave_rd),
 		.ready(wav_data_ready)
 	);
 
 	//  signals for DDRAM
+
+	// NOTE: the wav_wr (we) line doesn't want to stay high. It needs to be high to start, and then can't go high until wav_data_ready
+	// we hold the ioctl_wait high (stop the data from HPS) until we get waV_data_ready
 
 	always @(posedge clk_sys) begin
 		reg old_reset;
@@ -524,7 +546,7 @@ assign AUDIO_L = GorfCabinet ? (GorfSpeech ? {1'd0,sample_l[15:1]} : CAB_L) : On
 ////////////////////////////  VIDEO  ////////////////////////////////////
 
 
-wire [3:0] R, G, B;
+wire [7:0] R, G, B;
 
 reg  HSync;
 reg  VSync;
@@ -582,7 +604,7 @@ screen_rotate screen_rotate
 `endif
 
 reg [15:0] wave_data_reg;
-always @(posedge clk_sys)
+always @(posedge clk_snd)
 	wave_data_reg <= wave_data;
 
 
@@ -686,9 +708,9 @@ always @(posedge MY_CLK_VIDEO) begin
 		O_G <= 8'd0;
 	end
 	else begin
-		O_R <= {R,R};
-		O_B <= {B,B};
-		O_G <= {G,G};
+		O_R <= R;
+		O_B <= B;
+		O_G <= G;
 
 		// Seawolf II - Draw scopes (since original has moving periscope)
 		if (mod_seawolf2) begin
@@ -743,7 +765,7 @@ always @(posedge MY_CLK_VIDEO) begin
 		
 		if (mod_ebase) begin
 			// Copy in background data
-			if ((R==4'd0) && (G==4'd0) && (B==4'd0)) begin
+			if ((R==8'd0) && (G==8'd0) && (B==8'd0)) begin
 				O_R <= bg_r;
 				O_G <= bg_g;
 				O_B <= bg_b;
@@ -932,5 +954,105 @@ always @(posedge MY_CLK_VIDEO) begin
 		{bg_b,bg_g,bg_r} <= 0;
 	end
 end
+
+
+// Cabinet specific routines
+
+`ifdef CABINET
+
+// Gorf - control lights
+
+// 74257 connected with DAT0-2 as Address
+//                      DAT3 as Data
+//                      CMD as /LE
+//
+// Needs mod to sys_top.v to allow access to these lines
+
+reg LastFire;
+reg LastClock;
+
+reg [7:0] Light_Data = 0; // Holds what we want outputs to do
+reg [7:0] LastOutput = 8'd255;
+
+always @(posedge clk_sys) begin
+ if (mod_gorf) begin
+   LastClock <= clk_cpu_ct[1]; // clk_cpu_en;
+	if (!LastClock && clk_cpu_ct[1]) begin
+		// Clear write if set
+		if (L_Write == 1'd0) begin
+			L_Write <= 1'd1;
+		end
+		else begin
+			// See if we need to change anything on the output side
+			if (LastOutput != Light_Data) begin
+				// cycle through until we find a bit that has changed, and output it
+				if (LastOutput[0] != Light_Data[0]) begin
+					L_Address <= 3'd0;
+					L_Data <= Light_Data[0];
+					LastOutput[0] <= Light_Data[0];
+				end
+				else begin
+					if (LastOutput[1] != Light_Data[1]) begin
+						L_Address <= 3'd1;
+						L_Data <= Light_Data[1];
+						LastOutput[1] <= Light_Data[1];
+					end
+					else begin
+						if (LastOutput[2] != Light_Data[2]) begin
+							L_Address <= 3'd2;
+							L_Data <= Light_Data[2];
+							LastOutput[2] <= Light_Data[2];
+						end
+						else begin
+							if (LastOutput[3] != Light_Data[3]) begin
+								L_Address <= 3'd3;
+								L_Data <= Light_Data[3];
+								LastOutput[3] <= Light_Data[3];
+							end
+							else begin
+								if (LastOutput[4] != Light_Data[4]) begin
+									L_Address <= 3'd4;
+									L_Data <= Light_Data[4];
+									LastOutput[4] <= Light_Data[4];
+								end
+								else begin
+									if (LastOutput[5] != Light_Data[5]) begin
+										L_Address <= 3'd5;
+										L_Data <= Light_Data[5];
+										LastOutput[5] <= Light_Data[5];
+									end
+									else begin
+										if (LastOutput[6] != Light_Data[6]) begin
+											L_Address <= 3'd6;
+											L_Data <= Light_Data[6];
+											LastOutput[6] <= Light_Data[6];
+										end
+										else begin
+											if (LastOutput[7] != Light_Data[7]) begin
+												L_Address <= 3'd7;
+												L_Data <= Light_Data[7];
+												LastOutput[7] <= Light_Data[7];
+											end
+										end
+									end
+								end
+							end
+						end
+					end
+				end
+				// Set write line
+				L_Write <= 1'd0;
+			end
+		end
+	end
+ end
+end
+
+// Wizard of Wor - Third sound channel
+
+
+// P2 controls (uses P1 buttons for P2)
+
+`endif
 
 endmodule
