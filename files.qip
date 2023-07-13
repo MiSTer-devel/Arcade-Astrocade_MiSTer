@@ -8,6 +8,7 @@ set_global_assignment -name VHDL_FILE rtl/bally_col_pal.vhd
 set_global_assignment -name VHDL_FILE rtl/bally_pattern.vhd
 set_global_assignment -name VHDL_FILE rtl/bally_addr.vhd
 set_global_assignment -name VHDL_FILE rtl/bally_sparkle.vhd
+set_global_assignment -name VHDL_FILE rtl/bally_starpos.vhd
 set_global_assignment -name VHDL_FILE rtl/bally_lamps.vhd
 set_global_assignment -name VHDL_FILE rtl/bram.vhd
 set_global_assignment -name VHDL_FILE rtl/bally.vhd
