@@ -16,7 +16,9 @@
 --                    Add lamp support for cabinet mode              
 --                    Fix missing word (near) in Gorf program 1
 --                    Fix samples in DDRAM error
--- 
+-- V 1.9 13/07/2023   Fix star positions to match PCB
+--                    Make sparkle look more like real PCB
+--                    Fix missing word (annihilate) in Gorf program 1
 ------------------------------------------------------------------------------------
 -- From FPGA implementation of the Bally Astrocade based on a project by MikeJ et al
 ------------------------------------------------------------------------------------
