@@ -239,8 +239,6 @@ architecture RTL of BALLY is
   signal vsync            : std_logic;
   signal fpsync           : std_logic;
   signal serial           : std_logic_vector(1 downto 0);
-  signal HCOUNT           : std_logic_vector(8 downto 0);
-  signal VCOUNT           : std_logic_vector(10 downto 0); 
   
   signal pat_addr         : std_logic_vector(15 downto 0);
   signal pat_data_o       : std_logic_vector(7 downto 0);
@@ -380,9 +378,7 @@ begin
   O_BIOS_CS_L <= sys_cs_l;
   rom_dout <= I_BIOS_DATA;
   O_CE_PIX <= pix_ena;
-  O_HCOUNT <= HCOUNT;
-  O_VCOUNT <= VCOUNT;
-  
+
   p_cpu_src_data_mux : process(rom_dout, sys_cs_l, cas_cs_l, mx_addr_oe_l, mx_addr, mx_data_oe_l, mx_data, mx_io_oe_l, mx_io, patram)
   begin
     -- nasty mux
@@ -492,8 +488,8 @@ begin
       O_VBLANK          => O_VBLANK_V,
       O_FPSYNC          => fpsync,
 		-- Needed for Scope on Seawolf2
-		O_HCOUNT          => HCOUNT,
-		O_VCOUNT          => VCOUNT,
+		O_HCOUNT          => O_HCOUNT,
+		O_VCOUNT          => O_VCOUNT,
 		-- Lightpen info
 		I_LP_V            => lightpen_v,
 		I_LP_H            => lightpen_h,
@@ -616,9 +612,7 @@ O_AUDIO_R <= Gen_Audio_R & Gen_Audio_R & Gen_Audio_R(5 downto 2);
 	I_RESET_L         => I_RESET_L,
 	 
 	 -- Screen Info
-	I_HCOUNT          => HCOUNT,
-	I_VCOUNT          => VCOUNT,
-
+	I_SCREENSTART     => vsync,
 	I_CODE            => serial,
 	I_COLOUR          => video_colour,
    O_ACTIVE          => sparkled,
