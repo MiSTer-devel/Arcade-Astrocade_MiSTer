@@ -239,8 +239,6 @@ architecture RTL of BALLY is
   signal vsync            : std_logic;
   signal fpsync           : std_logic;
   signal serial           : std_logic_vector(1 downto 0);
-  signal HCOUNT           : std_logic_vector(8 downto 0);
-  signal VCOUNT           : std_logic_vector(10 downto 0); 
   
   signal pat_addr         : std_logic_vector(15 downto 0);
   signal pat_data_o       : std_logic_vector(7 downto 0);
@@ -289,6 +287,8 @@ architecture RTL of BALLY is
   signal s_green			  : std_logic_vector(7 downto 0);
   signal s_blue			  : std_logic_vector(7 downto 0);
   
+  signal HCOUNT           : std_logic_vector(8 downto 0);
+  signal VCOUNT           : std_logic_vector(10 downto 0); 
 begin
   --
   -- cpu
@@ -382,7 +382,7 @@ begin
   O_CE_PIX <= pix_ena;
   O_HCOUNT <= HCOUNT;
   O_VCOUNT <= VCOUNT;
-  
+
   p_cpu_src_data_mux : process(rom_dout, sys_cs_l, cas_cs_l, mx_addr_oe_l, mx_addr, mx_data_oe_l, mx_data, mx_io_oe_l, mx_io, patram)
   begin
     -- nasty mux
@@ -616,12 +616,11 @@ O_AUDIO_R <= Gen_Audio_R & Gen_Audio_R & Gen_Audio_R(5 downto 2);
 	I_RESET_L         => I_RESET_L,
 	 
 	 -- Screen Info
-	I_HCOUNT          => HCOUNT,
-	I_VCOUNT          => VCOUNT,
-
 	I_CODE            => serial,
 	I_COLOUR          => video_colour,
    O_ACTIVE          => sparkled,
+	I_HCOUNT          => HCOUNT,
+	I_VCOUNT          => VCOUNT,
 
 	O_VIDEO_R         => s_red,
    O_VIDEO_G         => s_green,

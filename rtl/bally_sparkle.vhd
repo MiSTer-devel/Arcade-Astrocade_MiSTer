@@ -152,6 +152,7 @@ begin
   end process;
 
 	sparkle : process
+	variable TotalLuma : std_logic_vector(8 downto 0);
 	variable NewLuma : std_logic_vector(3 downto 0);
 	begin
 		wait until rising_edge(CLK);
@@ -159,13 +160,15 @@ begin
 
 			-- Pixel changed
 			sparkled <= '1';
-		
-			-- LUMA setting from random number
-			NewLuma := (prng2(4) & prng2(12) & prng2(16) & prng2(8));
-			
-			-- If higher than original LUMA, then black
-			if (NewLuma(3 downto 0) > I_COLOUR(2 downto 0) & '0') then
-					NewLuma := "0000";
+
+			if prng2(4)='1' and prng2(12)='1' and prng2(16)='1' and prng2(8)='1' then
+				-- should be original LUMA but integer calculation fails for this value
+				NewLuma   := I_COLOUR(2 downto 0) & '0';
+			else
+				-- Calculate NewLuma ((sparkleluma + 16) * (OriginalLuma * 2) / 32
+				-- n.b. Original calculation is (LUMA * (NewLuma / 30 + 0.5)) / 30
+				TotalLuma := ("1" & prng2(4) & prng2(12) & prng2(16) & prng2(8)) * (I_COLOUR(2 downto 0) & '0');
+				NewLuma   := TotalLuma(8 downto 5);
 			end if;
 		
 			-- Stars if background colour
