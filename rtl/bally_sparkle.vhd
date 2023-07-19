@@ -2,11 +2,7 @@
 -- A simulation model of Bally Astrocade hardware
 --
 -- Sparkle circuit for Arcade - Mike@the-coates.com
---
--- Revision list
---
--- version 001 initial release
---
+
 library ieee;
   use ieee.std_logic_1164.all;
   use ieee.std_logic_unsigned.all;
@@ -25,9 +21,11 @@ entity BALLY_SPARKLE is
     I_RESET_L         : in   std_logic;
 
 	 -- Screen Info
-	 I_SCREENSTART     : in   std_logic;
+	 I_HCOUNT          : in   std_logic_vector(8 downto 0);
+	 I_VCOUNT          : in   std_logic_vector(10 downto 0);
 	 I_CODE            : in   std_logic_vector(1 downto  0);
-	 I_COLOUR          : in   std_logic_vector(7 downto  0); -- Original Luma, 0-7
+	 I_COLOUR          : in   std_logic_vector(7 downto  0);
+	 
 	 O_ACTIVE          : out  std_logic;
 
 	 -- colour of new pixel
@@ -52,17 +50,39 @@ architecture RTL of BALLY_SPARKLE is
 
   signal cs_r                 : std_logic;
   signal Sparkle_en           : array_bool4 := (others => true);
-  signal prng1 					: std_logic_vector(16 downto 0) := (others => '0');
+  --signal prng1 					: std_logic_vector(16 downto 0) := (others => '0');
   signal prng2 					: std_logic_vector(16 downto 0) := (others => '0');
   
   signal col_in               : std_logic_vector( 8 downto 0) := (others => '0');
   signal col_out              : std_logic_vector(23 downto 0) := (others => '0');
+  
+  signal StarCount            : std_logic_vector( 9 downto 0) := (others => '0');
+  signal NextStar             : std_logic_vector( 8 downto 0) := (others => '0');
+  signal Horizontal           : std_logic_vector( 8 downto 0) := (others => '0');
+  signal Vertical   				: std_logic_vector(10 downto 0);
   
   -- Delays
   signal red,green,blue       : std_logic_vector( 7 downto 0) := (others => '0');
   signal sparkled					: std_logic;
   
 begin
+
+  CalcPositions : process(I_VCOUNT, I_HCOUNT)
+  begin
+		-- Sort out interlace independent counters
+		if I_VCOUNT > 262 then
+			Vertical <= I_VCOUNT - 263;
+		else
+			Vertical <= I_VCOUNT;
+		end if;
+		
+		-- Visible screen pixels
+		if I_HCOUNT > 91 then
+			Horizontal <= I_HCOUNT - 92;
+		else
+			Horizontal <= (others => '1');
+		end if;
+  end process;
   
   p_chip_sel : process(I_CPU_ENA, I_MXA)
   begin
@@ -100,15 +120,25 @@ begin
       end if;
     end if;
   end process;
-  
+
   star_position : process
   begin
     wait until rising_edge(CLK);
     if (ENA = '1') then
-		if I_SCREENSTART='1' then
-			prng1 <= "00000000000000000";
+	 			
+	   if Horizontal = 0 and Vertical = 44 then
+			-- prng1     <= (others => '0');
+			StarCount <= (others => '0');
 		else
-			prng1 <= (prng1(12) xor prng1(0) xor '1') & prng1(16 downto 1);
+			-- Only increment for 352 pixels per line
+			--if I_HCOUNT > 87 and I_HCOUNT < 440 then
+			--	prng1 <= (prng1(12) xor (not(prng1(0)))) & prng1(16 downto 1);
+			--end if;
+			
+			-- Star position table - if we reached this star, get the next one
+			if Horizontal = NextStar and Horizontal /= "111111111" then
+				StarCount <= StarCount + 1;
+			end if;
 		end if;
     end if;
   end process;
@@ -117,46 +147,47 @@ begin
   begin
     wait until rising_edge(CLK);
     if (ENA = '1') then
-		prng2 <= (prng2(12) xor prng2(0) xor '1') & prng2(16 downto 1);
+			prng2 <= (prng2(12) xor (not(prng2(0)))) & prng2(16 downto 1);
     end if;
   end process;
-  
+
 	sparkle : process
-	variable NewLuma : std_logic_vector(4 downto  0);
+	variable TotalLuma : std_logic_vector(8 downto 0);
+	variable NewLuma : std_logic_vector(3 downto 0);
 	begin
 		wait until rising_edge(CLK);
 		if ((I_CODE="00" and Sparkle_en(0)) or (I_CODE="01" and Sparkle_en(1)) or (I_CODE="10" and Sparkle_en(2)) or (I_CODE="11" and Sparkle_en(3))) then
-		
-			-- Total LUMA from original and sparkle circuit
-			NewLuma := ('0' & prng2(4) & prng2(12) & prng2(16) & prng2(8)) + ('0' & I_COLOUR(2 downto 0) & '0');
+
+			-- Pixel changed
+			sparkled <= '1';
+
+			if prng2(4)='1' and prng2(12)='1' and prng2(16)='1' and prng2(8)='1' then
+				-- should be original LUMA but integer calculation fails for this value
+				NewLuma   := I_COLOUR(2 downto 0) & '0';
+			else
+				-- Calculate NewLuma ((sparkleluma + 16) * (OriginalLuma * 2) / 32
+				-- n.b. Original calculation is (LUMA * (NewLuma / 30 + 0.5)) / 30
+				TotalLuma := ("1" & prng2(4) & prng2(12) & prng2(16) & prng2(8)) * (I_COLOUR(2 downto 0) & '0');
+				NewLuma   := TotalLuma(8 downto 5);
+			end if;
 		
 			-- Stars if background colour
 			if I_CODE="00" then
-				-- it's a star, sort out brightness
-				sparkled <= '1';
-				if prng1(7 downto 0) = "11111110" then
-					-- cannot make brighter than it was
-					if NewLuma(4 downto 1) > I_COLOUR(2 downto 0) & '0' then
-						NewLuma := '0' & I_COLOUR(2 downto 0) & '0';  -- use original
-					end if;
-				else
-					-- black it out
-					NewLuma := "00000";
+				-- Black out until we get to the next star on this row or if we are in border area
+				if Horizontal /= NextStar or (Horizontal = "111111111") then
+					NewLuma := "0000";
 				end if;
-			else
-				-- sparkle this colour (can only make luma lower overall)
-				if NewLuma(4 downto 1) > I_COLOUR(2 downto 0) & '0' then
-					sparkled <= '0';
-				else
-					sparkled <= '1';
-				end if;
+				
+--				if prng1(7 downto 0) /= "11111110" then
+--					NewLuma := "0000";
+--				end if;
 			end if;
 		else
 			sparkled <= '0';
 		end if;
 		
 		-- Do new colour lookup
-		col_in <= I_COLOUR(7 downto 3) & NewLuma(4 downto 1);
+		col_in <= I_COLOUR(7 downto 3) & NewLuma(3 downto 0);
 
 		-- Output sparkled colour
 		red   <= col_out(23 downto 16);
@@ -176,6 +207,12 @@ begin
       ADDR        => col_in,
       DATA        => col_out
    );
-		
+
+   n_star : entity work.BALLY_STARPOS
+   port map (
+      ADDR        => StarCount,
+      DATA        => NextStar
+   );
+	
 end architecture RTL;
 

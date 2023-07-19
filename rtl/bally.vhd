@@ -287,6 +287,8 @@ architecture RTL of BALLY is
   signal s_green			  : std_logic_vector(7 downto 0);
   signal s_blue			  : std_logic_vector(7 downto 0);
   
+  signal HCOUNT           : std_logic_vector(8 downto 0);
+  signal VCOUNT           : std_logic_vector(10 downto 0); 
 begin
   --
   -- cpu
@@ -378,6 +380,8 @@ begin
   O_BIOS_CS_L <= sys_cs_l;
   rom_dout <= I_BIOS_DATA;
   O_CE_PIX <= pix_ena;
+  O_HCOUNT <= HCOUNT;
+  O_VCOUNT <= VCOUNT;
 
   p_cpu_src_data_mux : process(rom_dout, sys_cs_l, cas_cs_l, mx_addr_oe_l, mx_addr, mx_data_oe_l, mx_data, mx_io_oe_l, mx_io, patram)
   begin
@@ -488,8 +492,8 @@ begin
       O_VBLANK          => O_VBLANK_V,
       O_FPSYNC          => fpsync,
 		-- Needed for Scope on Seawolf2
-		O_HCOUNT          => O_HCOUNT,
-		O_VCOUNT          => O_VCOUNT,
+		O_HCOUNT          => HCOUNT,
+		O_VCOUNT          => VCOUNT,
 		-- Lightpen info
 		I_LP_V            => lightpen_v,
 		I_LP_H            => lightpen_h,
@@ -612,10 +616,11 @@ O_AUDIO_R <= Gen_Audio_R & Gen_Audio_R & Gen_Audio_R(5 downto 2);
 	I_RESET_L         => I_RESET_L,
 	 
 	 -- Screen Info
-	I_SCREENSTART     => vsync,
 	I_CODE            => serial,
 	I_COLOUR          => video_colour,
    O_ACTIVE          => sparkled,
+	I_HCOUNT          => HCOUNT,
+	I_VCOUNT          => VCOUNT,
 
 	O_VIDEO_R         => s_red,
    O_VIDEO_G         => s_green,
