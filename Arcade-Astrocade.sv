@@ -200,7 +200,7 @@ module emu
 	// Needs mod to sys_top.v to allow access to these pins
 
 	// Gorf Cabinet interface to drive ranking lights
-	output [3:0]	L_Address,
+	output [2:0]	L_Address,
 	output         L_Data,   
 	output        	L_Write,
 
@@ -222,10 +222,15 @@ assign USER_OUT = '1;
 assign {UART_RTS, UART_TXD, UART_DTR} = 0;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 
-assign AUDIO_S   = mod_seawolf2; // signed - seawolf 2, unsigned others
+assign AUDIO_S   = OnlySamples | PlusSamples; // signed when samples used, otherwise unsigned
 assign AUDIO_MIX = 0;
 
-// Use in Gorf to drive rank lights (1-6 = rank lights, 7 = joystick on/off ?)
+`ifdef CABINET
+	// Use in WOW for third sound output, otherwise leave 0
+	wire wowdac;
+	assign A_Channel = wowdac & mod_wow & sw[4][0];
+`endif
+
 assign LED_USER  = ioctl_download;	
 assign LED_DISK  = 0;
 assign LED_POWER = 0;
@@ -366,15 +371,19 @@ end
 
 
 // Game options
+reg  Gorf1 = 1'b0;												// Default is Gorf selected
 wire Stereo    = mod_gorf | mod_wow | mod_robby;      // Two sound chips fitted
 wire Sparkle   = mod_wow | mod_gorf;                  // Sparkle circuit used
 wire LightPen  = mod_wow | mod_gorf;                  // Light pen interrupt used
 wire High_Rom  = ~mod_seawolf2;	                     // Seawolf2 has ram C000-CFFF, everything else 8000-CFFF is ROM
 wire Extra_Rom = mod_robby;  									// Robby has ROM D000-EFFF as well
 wire OnlySamples = mod_seawolf2;                      // Uses samples but no sound chip
-wire PlusSamples = mod_gorf | mod_wow;						// Uses samples AND sound chip
-reg  Gorf1 = 1'b0;												// Default is Gorf selected
 
+`ifdef CABINET														// Uses samples AND sound chip unless Cabinet DIP set for WOW (DIP on = Cabinet mode)
+	wire PlusSamples = mod_gorf | (mod_wow & ~sw[4][0]); 
+`else
+	wire PlusSamples = mod_gorf | mod_wow;					// Uses samples AND sound chip
+`endif
 
 wire [7:0] col_select;
 wire [7:0] row_data;
@@ -440,12 +449,27 @@ wire B1_R = joystick_0[0];
 wire B1_F = joystick_0[4];
 wire B1_FB =joystick_0[5];
 
-wire B2_U = joystick_1[3];
-wire B2_D = joystick_1[2];
-wire B2_L = joystick_1[1];
-wire B2_R = joystick_1[0];
-wire B2_F = joystick_1[4];
-wire B2_FB =joystick_1[5];
+`ifdef CABINET
+	//	<buttons names="Fire,Move,Start 1P,Start 2P,Coin 1,P2 Fire,P2 Right, P2 Left,P2 Down,P2 Up,P2 Move,Test"></buttons>
+	wire B2_U = joystick_0[13];
+	wire B2_D = joystick_0[12];
+	wire B2_L = joystick_0[11];
+	wire B2_R = joystick_0[10];
+	wire B2_F = joystick_0[9];
+	wire B2_FB =joystick_0[14];
+	// Use TEST button on cab
+	wire B1_TEST = ~joystick_0[15];
+`else
+	// Use joystick 2
+	wire B2_U = joystick_1[3];
+	wire B2_D = joystick_1[2];
+	wire B2_L = joystick_1[1];
+	wire B2_R = joystick_1[0];
+	wire B2_F = joystick_1[4];
+	wire B2_FB =joystick_1[5];
+	// Use DIP switch
+	wire B1_TEST = sw[2][1];
+`endif
 
 ////////////////////////////  SOUND  ////////////////////////////////////
 
@@ -464,36 +488,49 @@ wire        Votrax_Status;
 reg	      GorfSpeech = 0;
 
 
-// Notes for sound mix
+// Sound Mixing
 
-// Samples are unsigned 16 bit, with silence = 32768, shift right gives 15 bit with silence = 16384
+reg signed [16:0] Work_L, Work_R;
 
-// Generated sound is 6 bit converted to 16 bit , silence = 0
+// Generated sound is 6 bit converted to 16 bit unsigned, silence = 0, we take top 15 bits only to leave as 0-32767
+//                                                                     Wow has loud effects, so reduce that a little more
+wire signed [16:0] In_L = mod_wow ? {3'd0,l_audio[15:2]} : {2'd0,l_audio[15:1]};
+wire signed [16:0] In_R = mod_wow ? {3'd0,r_audio[15:2]} : {2'd0,r_audio[15:1]};
 
-// however, Adding 15 bit Sample to 15 bit generated offsets for correct silence. (and never clips!)
+// Samples are signed 16 bit, for stereo mix we divide by 2 to limit to 16383
+wire signed [16:0] Samp_L = {sample_l[15],sample_l[15],sample_l[15:1]};
+wire signed [16:0] Samp_R = {sample_r[15],sample_r[15],sample_r[15:1]};
 
-wire [16:0] Work_L = {1'd0,l_audio[15:1]} + {2'd0,sample_l[15:1]}; 
-wire [16:0] Work_R = {1'd0,r_audio[15:1]} + {2'd0,sample_r[15:1]}; 
+always @(posedge CLK_AUDIO) begin
+	// Add together
+	Work_L <= Samp_L + In_L; 
+	Work_R <= Samp_R + In_R; 
+end
 
+// Clip if necessary (stereo mode)
+wire [15:0] LeftOut  = ^Work_L[16:15] ? {Work_L[16],{15{Work_L[15]}}} : Work_L[15:0];
+wire [15:0] RightOut = ^Work_R[16:15] ? {Work_R[16],{15{Work_R[15]}}} : Work_R[15:0];
 
-// Gorf cabinet specific
-
-// Top speaker plays just the sound from one sound chip : right channel
-// lower speaker is second sound chip or SC01 (switched by IO port - GorfSpeech) : left channel
+// Gorf cabinet mode
+// -----------------
+// one speaker plays just the sound from one sound chip : right channel
+// other speaker is second sound chip or SC01 (switched by IO port - GorfSpeech) : left channel
 
 wire GorfCabinet = mod_gorf && sw[0][0];
 
-// we add 16384 to the sound chip audio to get around the silence offset problem (since we are using both audio sources as 16 bit)
-wire [16:0] CAB_W_L = l_audio + 17'd16384;
-wire [15:0] CAB_L = CAB_W_L[16] ? 16'd65535 : CAB_W_L[15:0];
+// Wizard of Wor cabinet mode
+// --------------------------
+// Has 3 speakers, 2 for stereo and 1 for speech. 
+// 
+// Handled above my modifying PlusSamples - Speech output handled below
 
 // Choose relevant sound registers for output
-wire [15:0] MyRight = GorfCabinet ? r_audio : OnlySamples ? sample_r : PlusSamples ? Work_R : Stereo ? r_audio : l_audio;
-wire [15:0] MyLeft  = GorfCabinet ? (GorfSpeech ? {1'd0,sample_l[15:1]} : CAB_L) : OnlySamples ? sample_l : PlusSamples ? Work_L : l_audio;
+wire [15:0] MyRight = GorfCabinet ? {1'd0,r_audio[15:1]} : OnlySamples ? sample_r : PlusSamples ? RightOut : Stereo ? r_audio : l_audio;
+wire [15:0] MyLeft  = GorfCabinet ? (GorfSpeech ? sample_l : {1'd0,l_audio[15:1]}) : OnlySamples ? sample_l : PlusSamples ? LeftOut : l_audio;
 
-// Allow use of DIP to swop channels
-assign AUDIO_L = sw[0][1] ? MyRight : MyLeft;
-assign AUDIO_R = sw[0][1] ? MyLeft : MyRight;
+// Allow use of DIP to swop channels (really for cabinet only!)
+assign AUDIO_L = sw[0][1] ? MyLeft : MyRight;
+assign AUDIO_R = sw[0][1] ? MyRight : MyLeft;
 
 
 // Samples
@@ -656,6 +693,7 @@ BALLY bally
 	.I_GORF         (mod_gorf),
 	.I_SEAWOLF      (mod_seawolf2),
 	.I_WOW          (mod_wow),
+	.I_BRIGHTSTAR   (sw[4][0] & mod_gorf),
 
 	// Samples
 	.O_SAMP_L       (sample_l),
@@ -677,6 +715,7 @@ BALLY bally
 	.O_POT          (pot_select),
 	.I_POT          (pot_data),
 	.O_TRACK_S      (track_select), // eBases trackball axis select
+	.O_LAMPS			 (Light_Data),	// Lamp on/off
 
 	// System
 	.I_RESET_L      (~reset), //    : in    std_logic;
@@ -763,17 +802,17 @@ always @(posedge MY_CLK_VIDEO) begin
 		// Allow mono mode for Space Zap
 		if (mod_spacezap) begin
 			if (sw[0][1] == 1'd1) begin
-				if ((B[3:0] == 4'd06)) begin
+				if ((G == 4'd15) && (B == 4'd4)) begin
 					O_R <= 8'd238;
 					O_G <= 8'd238;
 					O_B <= 8'd238;
 				end
-				if (B == 8'd176) begin
+				if (B == 4'd11) begin
 					O_R <= 8'd170;
 					O_G <= 8'd170;
 					O_B <= 8'd170;
 				end
-				if (B[3:0] == 4'd03) begin
+				if (G == 4'd04) begin
 					O_R <= 8'd136;
 					O_G <= 8'd136;
 					O_B <= 8'd136;
@@ -993,7 +1032,7 @@ reg [7:0] Light_Data = 0; // Holds what we want outputs to do
 reg [7:0] LastOutput = 8'd255;
 
 always @(posedge clk_sys) begin
- if (mod_gorf) begin
+if (mod_gorf || mod_robby) begin
    LastClock <= clk_cpu_ct[1]; // clk_cpu_en;
 	if (!LastClock && clk_cpu_ct[1]) begin
 		// Clear write if set

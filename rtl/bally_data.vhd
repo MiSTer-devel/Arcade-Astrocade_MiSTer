@@ -99,6 +99,9 @@ entity BALLY_DATA is
 	 -- Lightpen interrupt position
 	 I_LP_V            : in    std_logic_vector( 7 downto  0);
 	 I_LP_H            : in    std_logic_vector( 7 downto  0);
+	 
+	 -- Dips
+	 I_BRIGHTSTAR      : in    std_logic; -- If set then make stars brighter in Gorf
 
     -- clks
     O_CPU_ENA         : out   std_logic; -- cpu clock ena
@@ -338,13 +341,29 @@ begin
   end process;
 
   p_reg_write_blk        : process
+  variable StarCol : std_logic_vector(7 downto 0);
   begin
     wait until rising_edge(CLK);
     if (ENA = '1') then
-      for i in 0 to 7 loop
-        if col_ld(i) then r_col(i) <= I_MXD; end if;
-      end loop;
-    end if;
+		-- Normal colours 
+	   if col_ld(1) then r_col(1) <= I_MXD; end if;
+	   if col_ld(2) then r_col(2) <= I_MXD; end if;
+	   if col_ld(3) then r_col(3) <= I_MXD; end if;
+	   if col_ld(5) then r_col(5) <= I_MXD; end if;
+	   if col_ld(6) then r_col(6) <= I_MXD; end if;
+	   if col_ld(7) then r_col(7) <= I_MXD; end if;
+		
+		-- Stars
+		if (I_BRIGHTSTAR='1') and ((I_MXD = x"04") or (I_MXD = x"06")) then
+			StarCol := x"07";
+		else
+			StarCol := I_MXD;
+		end if;
+		
+      if col_ld(0) then r_col(0) <= StarCol; end if;
+      if col_ld(4) then r_col(4) <= StarCol; end if;
+
+	 end if;
   end process;
 
   p_cpu_ena              : process

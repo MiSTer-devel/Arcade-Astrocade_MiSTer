@@ -161,15 +161,9 @@ begin
 			-- Pixel changed
 			sparkled <= '1';
 
-			if prng2(4)='1' and prng2(12)='1' and prng2(16)='1' and prng2(8)='1' then
-				-- should be original LUMA but integer calculation fails for this value
-				NewLuma   := I_COLOUR(2 downto 0) & '0';
-			else
-				-- Calculate NewLuma ((sparkleluma + 16) * (OriginalLuma * 2) / 32
-				-- n.b. Original calculation is (LUMA * (NewLuma / 30 + 0.5)) / 30
-				TotalLuma := ("1" & prng2(4) & prng2(12) & prng2(16) & prng2(8)) * (I_COLOUR(2 downto 0) & '0');
-				NewLuma   := TotalLuma(8 downto 5);
-			end if;
+			-- Calculate NewLuma ((sparkleluma + 16) * (OriginalLuma * 2) / 32
+			TotalLuma := ("1" & prng2(4) & prng2(12) & prng2(16) & prng2(8)) * (I_COLOUR(2 downto 0) & '0');
+			NewLuma   := TotalLuma(8 downto 5);
 		
 			-- Stars if background colour
 			if I_CODE="00" then

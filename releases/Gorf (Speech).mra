@@ -33,6 +33,7 @@
 		<dip bits="17" ids="On,Off" name="Service"></dip>
 		<dip bits="18" ids="Off,On" name="Speech"></dip>
 		<dip bits="00" ids="Stereo,Cabinet" name="Sound Mix"></dip>
+		<dip bits="01" ids="Normal,Swop" name="Speakers"></dip>
 		<dip bits="25,26" ids="1c/5cr,1c/3cr,2c/1cr,1c/1cr" name="Coinage"></dip>
 		<dip bits="28" ids="3,2" name="Lives"></dip>
 		<dip bits="29" ids="None,Mission 5" name="Bonus"></dip>

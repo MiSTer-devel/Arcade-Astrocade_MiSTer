@@ -71,14 +71,15 @@ entity BALLY is
 	 O_VCOUNT           : out   std_logic_vector(10 downto 0);
 
 	 -- Arcade Rom
-	 I_HIGH_ROM			: in    std_logic; -- ROM at 8000-CFFF ?
- 	 I_EXTRA_ROM	    : in    std_logic; -- ROM at D000-DFFF ?
+	 I_HIGH_ROM			  : in    std_logic; -- ROM at 8000-CFFF ?
+ 	 I_EXTRA_ROM	     : in    std_logic; -- ROM at D000-DFFF ?
 	 I_SPARKLE          : in    std_logic; -- Sparkle Circuit
 	 I_LIGHTPEN         : in    std_logic; -- Light pen interrupt
 	 I_GORF             : in    std_logic; -- Gorf (seperate RAM access for CPU opcodes) and Samples for Votrax
 	 I_SEAWOLF          : in    std_logic; -- SeaWolf samples
-	 I_WOW          	: in    std_logic; -- WOW samples
-
+	 I_WOW          	  : in    std_logic; -- WOW samples
+	 I_BRIGHTSTAR       : in    std_logic; -- Gorf Star Brightness
+	 
 	 O_SAMP_L           : out   std_logic_vector(15 downto 0);
 	 O_SAMP_R           : out   std_logic_vector(15 downto 0);
 	 O_SAMP_ADDR        : out   std_logic_vector(23 downto 0);
@@ -239,6 +240,8 @@ architecture RTL of BALLY is
   signal vsync            : std_logic;
   signal fpsync           : std_logic;
   signal serial           : std_logic_vector(1 downto 0);
+  signal HCOUNT           : std_logic_vector(8 downto 0);
+  signal VCOUNT           : std_logic_vector(10 downto 0); 
   
   signal pat_addr         : std_logic_vector(15 downto 0);
   signal pat_data_o       : std_logic_vector(7 downto 0);
@@ -286,9 +289,7 @@ architecture RTL of BALLY is
   signal s_red				  : std_logic_vector(7 downto 0);
   signal s_green			  : std_logic_vector(7 downto 0);
   signal s_blue			  : std_logic_vector(7 downto 0);
-  
-  signal HCOUNT           : std_logic_vector(8 downto 0);
-  signal VCOUNT           : std_logic_vector(10 downto 0); 
+
 begin
   --
   -- cpu
@@ -497,6 +498,8 @@ begin
 		-- Lightpen info
 		I_LP_V            => lightpen_v,
 		I_LP_H            => lightpen_h,
+		-- Options       
+		I_BRIGHTSTAR      => I_BRIGHTSTAR,
 		-- clks
       O_CPU_ENA         => cpu_ena, -- cpu clock ena
       O_PIX_ENA         => pix_ena, -- pixel clock ena
