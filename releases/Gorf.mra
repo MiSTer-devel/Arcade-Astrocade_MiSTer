@@ -36,6 +36,7 @@
 		<dip bits="29" ids="None,Mission 5" name="Bonus"></dip>
 		<dip bits="30" ids="On,Off" name="Freeplay"></dip>
 		<dip bits="31" ids="Off,On" name="demo sound"></dip>
+		<dip bits="32" ids="Normal,Bright" name="Stars"></dip>
 		</switches>
 
 	<rom index="1">

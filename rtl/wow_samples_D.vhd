@@ -318,8 +318,8 @@ constant snd_stops : snd_addr_t := (
 			 -- All samples 11khz, so every 4th call
 			 if clk11k="11" then
 				 -- latch final audio / reset sum
-				 audio_out_l <= not audio(15) & audio(14 downto 0); -- Convert to unsigned
-				 audio_out_r <= not audio(15) & audio(14 downto 0); -- for output
+				 audio_out_l <= audio(15 downto 0);
+				 audio_out_r <= audio(15 downto 0);			 
 			 end if;
 			
 		 else
