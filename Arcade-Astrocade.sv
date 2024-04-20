@@ -216,6 +216,8 @@ module emu
 assign VGA_F1      = 0;
 assign VGA_SCALER  = 0;
 assign VGA_DISABLE = 0;
+assign HDMI_FREEZE = 0;
+assign FB_FORCE_BLANK = 0;
 
 assign ADC_BUS  = 'Z;
 assign USER_OUT = '1;
@@ -405,7 +407,7 @@ wire [7:0] ct0_sw2 = {B2_F, 1'b1, pos_data2[5:0]};
 wire [7:0] ct1_sw2 = {B1_F, sw[0][0], pos_data1[5:0]}; 
 wire [7:0] ct2_sw2 = {4'd15, sw[0][1], B2_S, B1_S, B1_C}; 
 // Space Zap
-wire [7:0] ct0_sz = {2'D3,~B2_S,~B1_S,sw[2][1],1'b1,~B1_C,1'b1};
+wire [7:0] ct0_sz = {2'D3,~F_B2_S,~F_B1_S,sw[2][1],1'b1,~F_B1_C,1'b1};
 wire [7:0] ct1_sz = {3'D7,~B2_F,~B2_R,~B2_L,~B2_D,~B2_U};
 wire [7:0] ct2_sz = {2'D3,sw[2][0],~B1_F,~B1_R,~B1_L,~B1_D,~B1_U};
 // Wizard of Wor
@@ -470,6 +472,27 @@ wire B1_FB =joystick_0[5];
 	// Use DIP switch
 	wire B1_TEST = sw[2][1];
 `endif
+
+// Freeplay option for Space Zap - blitter disables CPU so set signals for a long time!
+
+wire F_B1_C;
+wire F_B1_S;
+wire F_B2_S;
+
+freeplay #(
+	.count(466666),
+	.delay(30))
+freeplay (
+  .i_clk(clk_sys),
+  .i_coin(B1_C),
+  .i_start1(B1_S),
+  .i_start2(B2_S),
+  .o_coin(F_B1_C),
+  .o_start1(F_B1_S),
+  .o_start2(F_B2_S),
+  .enable(mod_spacezap && sw[0][3])
+);
+
 
 ////////////////////////////  SOUND  ////////////////////////////////////
 
