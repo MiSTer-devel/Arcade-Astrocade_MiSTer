@@ -32,6 +32,7 @@
 		<dip bits="16" ids="Cocktail,Upright" name="Cabinet"></dip>
 		<dip bits="17" ids="On,Off" name="Service"></dip>
 		<dip bits="25,26" ids="1c/5cr,1c/3cr,2c/1cr,1c/1cr" name="Coinage"></dip>
+		<dip bits="03" ids="No,Yes" name="Freeplay"></dip>
 		</switches>
 
 	<rom index="1">

@@ -13,6 +13,7 @@ set_global_assignment -name VHDL_FILE rtl/bally_lamps.vhd
 set_global_assignment -name VHDL_FILE rtl/bram.vhd
 set_global_assignment -name VHDL_FILE rtl/bally.vhd
 set_global_assignment -name VHDL_FILE rtl/ebases_control.vhd
+set_global_assignment -name VHDL_FILE rtl/freeplay.vhd
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/gorf_samples.sv
 set_global_assignment -name VHDL_FILE rtl/gorf_samples_S.vhd
 set_global_assignment -name VHDL_FILE rtl/gorf_samples_D.vhd
