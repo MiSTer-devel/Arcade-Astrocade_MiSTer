@@ -28,7 +28,7 @@
 	<num_buttons>1</num_buttons>
 	<button_names></button_names>
 
-	<switches default="00,00,07,FF">
+	<switches default="00,00,07,FF,00">
 		<dip bits="16" ids="Cocktail,Upright" name="Cabinet"></dip>
 		<dip bits="17" ids="On,Off" name="Service"></dip>
 		<dip bits="18" ids="Off,On" name="Speech"></dip>
