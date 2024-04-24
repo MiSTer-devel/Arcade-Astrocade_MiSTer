@@ -825,17 +825,17 @@ always @(posedge MY_CLK_VIDEO) begin
 		// Allow mono mode for Space Zap
 		if (mod_spacezap) begin
 			if (sw[0][1] == 1'd1) begin
-				if ((G == 4'd15) && (B == 4'd4)) begin
+				if ((B[3:0] == 4'd06)) begin
 					O_R <= 8'd238;
 					O_G <= 8'd238;
 					O_B <= 8'd238;
 				end
-				if (B == 4'd11) begin
+				if (B == 8'd176) begin
 					O_R <= 8'd170;
 					O_G <= 8'd170;
 					O_B <= 8'd170;
 				end
-				if (G == 4'd04) begin
+				if (B[3:0] == 4'd03) begin
 					O_R <= 8'd136;
 					O_G <= 8'd136;
 					O_B <= 8'd136;
