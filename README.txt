@@ -19,6 +19,9 @@
 -- V 1.9 13/07/2023   Fix star positions to match PCB
 --                    Make sparkle look more like real PCB
 --                    Fix missing word (annihilate) in Gorf program 1
+-- V 2.0 24/04/2024   Add Freeplay for Space Zap
+--                    Improve sound mixing
+--
 ------------------------------------------------------------------------------------
 -- From FPGA implementation of the Bally Astrocade based on a project by MikeJ et al
 ------------------------------------------------------------------------------------
