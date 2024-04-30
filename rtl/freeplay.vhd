@@ -1,11 +1,6 @@
+-- Coin Up style hardware device for games that do not have freeplay option
 --
--- A simulation model of Bally Astrocade hardware
---
--- Lamp circuit for Arcade - Mike@the-coates.com
---
--- Revision list
---
--- version 001 initial release
+-- version 1 initial release
 --
 library ieee;
   use ieee.std_logic_1164.all;
@@ -15,7 +10,7 @@ library ieee;
 
 entity freeplay is
 	generic(
-		count : integer := 20000;	-- About 10Ms in cycles
+		count : integer := 20000;	-- About 1/10 second in cycles
 		delay : integer := 1 		-- Delay between coin and start
 	);
 	port (
