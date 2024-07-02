@@ -21,6 +21,7 @@
 --                    Fix missing word (annihilate) in Gorf program 1
 -- V 2.0 24/04/2024   Add Freeplay for Space Zap
 --                    Improve sound mixing
+-- V 2.1 02/07/2024   Add Frame Advance DIP setting for Gorf
 --
 ------------------------------------------------------------------------------------
 -- From FPGA implementation of the Bally Astrocade based on a project by MikeJ et al

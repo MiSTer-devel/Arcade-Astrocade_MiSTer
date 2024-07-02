@@ -354,17 +354,17 @@ always @(posedge clk_sys) begin
 	reg [7:0] mod = 0;
 	if (ioctl_wr & (ioctl_index==1)) mod <= ioctl_dout[7:0];
 	
-	mod_ebase	    <= (mod == 1);
+	mod_ebase	   <= (mod == 1);
 	mod_seawolf2	<= (mod == 2);
 	mod_spacezap	<= (mod == 3);
-	mod_gorf		<= (mod == 4);
+	mod_gorf		   <= (mod == 4);
 	mod_wow			<= (mod == 5);
 	mod_robby		<= (mod == 6);
 	mod_gorf1		<= (mod == 7);
 
 	if (mod_gorf1) begin
 		mod_gorf	<= 1;
-		Gorf1 		<= 1;
+		Gorf1 	<= 1;
 		end
 end
 
@@ -420,9 +420,10 @@ wire [7:0] ct1_ww = sw[0][1] ? {2'd3,~B2_F,~W2_FB,~W2_R,~W2_L,~W2_D,~W2_U} : {2'
 wire [7:0] ct2_ww = sw[0][0] ? {Votrax_Status,1'd1,~B1_F,~W1_FB,~W1_R,~W1_L,~W1_D,~W1_U} : {Votrax_Status,1'd1,~B1_F,B1_FB,~B1_R,~B1_L,~B1_D,~B1_U};
 `endif
 // Gorf
-wire [7:0] ct0_gf = {sw[2][2],sw[2][0],~B2_S,~B1_S,1'b1,sw[2][1],~B1_C,1'b1};
+wire [7:0] ct0_gf = {sw[2][2],sw[2][0],~B2_S,~B1_S,~B1_SLAM,B1_TEST,~B2_C,~B1_C};
 wire [7:0] ct1_gf = {1'd0,2'd1,~B2_F,~B2_R,~B2_L,~B2_D,~B2_U};
 wire [7:0] ct2_gf = {Votrax_Status,2'd1,~B1_F,~B1_R,~B1_L,~B1_D,~B1_U};
+wire [7:0] fake_gf = {3'D7,~B1_S,1'B1,sw[2][3],2'D3};
 // Robby Roto
 wire [7:0] ct0_rr = {1'd0,~B2_S,~B1_S,1'b1,sw[2][1],1'b1,~B1_C,1'b1};
 wire [7:0] ct1_rr = {2'd3,~B2_F,1'd1,~B2_R,~B2_L,~B2_D,~B2_U};
@@ -433,7 +434,8 @@ always @(*) begin
 		8'h01: row_data = mod_ebase ? ct0_eb : mod_seawolf2 ? ct0_sw2 : mod_spacezap ? ct0_sz : mod_gorf ? ct0_gf : mod_wow ? ct0_ww : mod_robby ? ct0_rr : 8'd255;
 		8'h02: row_data = mod_ebase ? ct1_eb : mod_seawolf2 ? ct1_sw2 : mod_spacezap ? ct1_sz : mod_gorf ? ct1_gf : mod_wow ? ct1_ww : mod_robby ? ct1_rr : 8'd255;
 		8'h04: row_data = mod_ebase ? sw[2]  : mod_seawolf2 ? ct2_sw2 : mod_spacezap ? ct2_sz : mod_gorf ? ct2_gf : mod_wow ? ct2_ww : mod_robby ? ct2_rr : 8'd255;
-		8'h08: row_data = mod_ebase ? ct3_eb : sw[3]; // Only eBases does not have this as DIPs
+		8'h08: row_data = mod_ebase ? ct3_eb : sw[3];     								// Only eBases does not have this as DIPs	
+		8'h10: row_data = ((mod_gorf == 1) && (Gorf1 == 0)) ? fake_gf : 8'd255; // Fake port for Frame advance in Gorf
 		default: row_data = 8'd255;
 	endcase
 end
@@ -452,15 +454,33 @@ wire B1_F = joystick_0[4];
 wire B1_FB =joystick_0[5];
 
 `ifdef CABINET
-	//	<buttons names="Fire,Move,Start 1P,Start 2P,Coin 1,P2 Fire,P2 Right, P2 Left,P2 Down,P2 Up,P2 Move,Test"></buttons>
+	// Wizard of Wor
+	//	<buttons names="Fire,Move,Start 1P,Start 2P,Coin 1,P2 Fire,P2 Right, P2 Left,P2 Down,P2 Up,P2 Move,Coin 2"></buttons>
+	// Others
+	// <buttons names="Fire,Slam,Start 1P,Start 2P,Coin 1,P2 Fire,P2 Right, P2 Left,P2 Down,P2 Up,Test,Coin 2"></buttons>
 	wire B2_U = joystick_0[13];
 	wire B2_D = joystick_0[12];
 	wire B2_L = joystick_0[11];
 	wire B2_R = joystick_0[10];
 	wire B2_F = joystick_0[9];
 	wire B2_FB =joystick_0[14];
-	// Use TEST button on cab
-	wire B1_TEST = ~joystick_0[15];
+	wire B2_C = joystick_0[15];
+	
+	// Extra buttons for Gorf (and others, but only used for Gorf so far)
+	wire B1_TEST = mod_gorf ? ((~joystick_0[14] || ~Test_Enable) && sw[2][1]) : 1'b1; // test combines button (once pressed) and dip setting
+	wire B1_SLAM = mod_gorf ? joystick_0[5] : 1'b0;
+
+	// DIP and button for Gorf - but only enable button once pressed
+
+	reg Last_Test = 0;
+	reg Test_Enable = 0;
+	
+	always @(posedge clk_sys) begin
+		Last_Test <= B1_TEST;
+		if(~Last_Test & B1_TEST) begin
+			Test_Enable = 1'b1;
+		end
+	end
 `else
 	// Use joystick 2
 	wire B2_U = joystick_1[3];
@@ -469,8 +489,10 @@ wire B1_FB =joystick_0[5];
 	wire B2_R = joystick_1[0];
 	wire B2_F = joystick_1[4];
 	wire B2_FB =joystick_1[5];
-	// Use DIP switch
+	wire B2_C = joystick_0[9];
+	// Use DIP switch for test, disable slam
 	wire B1_TEST = sw[2][1];
+	wire B1_SLAM = 1'b0;
 `endif
 
 // Freeplay option for Space Zap - blitter disables CPU so set signals for a long time!
@@ -501,8 +523,8 @@ wire [15:0] l_audio;
 wire [15:0] r_audio;
 
 // Samples
-wire [15:0] sample_l;
-wire [15:0] sample_r;
+wire signed [15:0] sample_l;
+wire signed [15:0] sample_r;
 wire [23:0] wave_addr;
 wire [15:0] wave_data;
 wire        wave_rd;	
@@ -754,11 +776,14 @@ wire [7:0] Lrom_do;
 wire [7:0] Hrom_do;
 wire bios_rd;
 
+// Patch Gorf program code to use different IO address for frame advance
+wire Gorf_Patch = (ioctl_addr[15:0] == 16'H33FB) && (ioctl_index == 0) && (mod_gorf == 1) && (Gorf1 == 0);
+
 dpram #(14) bios // 0000-3FFF
 (
 	.clock(clk_sys),
 	.address_a(ioctl_download ? ioctl_addr[13:0] : bios_addr[13:0]),
-	.data_a(ioctl_dout),
+	.data_a(Gorf_Patch ? 8'H14 : ioctl_dout),
 	.wren_a(ioctl_wr && (ioctl_addr[15:14] == 2'd0) && (ioctl_index == 0)),
 	.q_a(Lrom_do)
 );
