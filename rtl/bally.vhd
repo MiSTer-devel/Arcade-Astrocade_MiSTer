@@ -50,8 +50,8 @@ library ieee;
 entity BALLY is
   port (
 	GORF1			   : in    std_logic; -- 0 = Gorf, 1 = Gorfprgm1
-   O_AUDIO_L          : out   std_logic_vector(15 downto 0);
-	O_AUDIO_R          : out   std_logic_vector(15 downto 0);
+   O_AUDIO_L          : out   std_logic_vector(5 downto 0);
+	O_AUDIO_R          : out   std_logic_vector(5 downto 0);
 	O_SPEECH           : out   std_logic;
 
     O_VIDEO_R          : out   std_logic_vector(7 downto 0);
@@ -507,9 +507,9 @@ begin
       CLK               => CLK
       );
 
--- Pack audio to output 16 bit version		
-O_AUDIO_L <= Gen_Audio_L & Gen_Audio_L & Gen_Audio_L(5 downto 2);
-O_AUDIO_R <= Gen_Audio_R & Gen_Audio_R & Gen_Audio_R(5 downto 2);
+-- output audio to output 6 bit
+O_AUDIO_L <= Gen_Audio_L;
+O_AUDIO_R <= Gen_Audio_R;
 		
   -- Pattern board does not touch, so leave as CPU info for now.
   u_io1  : entity work.BALLY_IO

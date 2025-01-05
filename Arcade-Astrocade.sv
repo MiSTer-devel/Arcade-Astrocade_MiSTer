@@ -97,7 +97,8 @@ module emu
 	input  [11:0] HDMI_WIDTH,
 	input  [11:0] HDMI_HEIGHT,
 	output        HDMI_FREEZE,
-
+	output        HDMI_BLACKOUT,
+	
 `ifdef MISTER_FB	
 	// Use framebuffer from DDRAM (USE_FB=1 in qsf)
 	// FB_FORMAT:
@@ -217,6 +218,7 @@ assign VGA_F1      = 0;
 assign VGA_SCALER  = 0;
 assign VGA_DISABLE = 0;
 assign HDMI_FREEZE = 0;
+assign HDMI_BLACKOUT = 0;
 assign FB_FORCE_BLANK = 0;
 
 assign ADC_BUS  = 'Z;
@@ -294,6 +296,7 @@ wire reset = RESET | buttons[1] | status[0] | ioctl_download;
 
 wire [31:0] status;
 wire  [1:0] buttons;
+reg   [7:0] Light_Data = 0;
 wire        forced_scandoubler;
 
 wire        ioctl_download;
@@ -301,10 +304,8 @@ wire        ioctl_wr;
 wire [24:0] ioctl_addr;
 wire [15:0] ioctl_dout;
 wire  [7:0] ioctl_index;
-wire        ioctl_wait;
-
+wire        ioctl_wait = 0;
 wire        direct_video;
-
 
 wire [15:0] joystick_0,joystick_1,joystick_a0,joystick_a1;
 
@@ -519,8 +520,11 @@ freeplay (
 ////////////////////////////  SOUND  ////////////////////////////////////
 
 // Sound Chip
-wire [15:0] l_audio;
-wire [15:0] r_audio;
+wire [5:0] l_audio;
+wire [5:0] r_audio;
+// Extend to 16 bit signed for use in mixing
+wire [15:0] l_audio_x = {1'd0,l_audio,l_audio,l_audio[5:3]};
+wire [15:0] r_audio_x = {1'd0,r_audio,r_audio,r_audio[5:3]};
 
 // Samples
 wire signed [15:0] sample_l;
@@ -539,8 +543,8 @@ reg signed [16:0] Work_L, Work_R;
 
 // Generated sound is 6 bit converted to 16 bit unsigned, silence = 0, we take top 15 bits only to leave as 0-32767
 //                                                                     Wow has loud effects, so reduce that a little more
-wire signed [16:0] In_L = mod_wow ? {3'd0,l_audio[15:2]} : {2'd0,l_audio[15:1]};
-wire signed [16:0] In_R = mod_wow ? {3'd0,r_audio[15:2]} : {2'd0,r_audio[15:1]};
+wire signed [16:0] In_L = mod_wow ? {2'd0,l_audio_x[15:1]} : {1'd0,l_audio_x};
+wire signed [16:0] In_R = mod_wow ? {2'd0,r_audio_x[15:1]} : {1'd0,r_audio_x};
 
 // Samples are signed 16 bit, for stereo mix we divide by 2 to limit to 16383
 wire signed [16:0] Samp_L = {sample_l[15],sample_l[15],sample_l[15:1]};
@@ -570,8 +574,8 @@ wire GorfCabinet = mod_gorf && sw[0][0];
 // Handled above my modifying PlusSamples - Speech output handled below
 
 // Choose relevant sound registers for output
-wire [15:0] MyRight = GorfCabinet ? {1'd0,r_audio[15:1]} : OnlySamples ? sample_r : PlusSamples ? RightOut : Stereo ? r_audio : l_audio;
-wire [15:0] MyLeft  = GorfCabinet ? (GorfSpeech ? sample_l : {1'd0,l_audio[15:1]}) : OnlySamples ? sample_l : PlusSamples ? LeftOut : l_audio;
+wire [15:0] MyRight = GorfCabinet ? r_audio_x : OnlySamples ? sample_r : PlusSamples ? RightOut : Stereo ? r_audio_x : l_audio_x;
+wire [15:0] MyLeft  = GorfCabinet ? (GorfSpeech ? sample_l : l_audio_x) : OnlySamples ? sample_l : PlusSamples ? LeftOut : l_audio_x;
 
 // Allow use of DIP to swop channels (really for cabinet only!)
 assign AUDIO_L = sw[0][1] ? MyLeft : MyRight;
@@ -1076,7 +1080,6 @@ end
 reg LastFire;
 reg LastClock;
 
-reg [7:0] Light_Data = 0; // Holds what we want outputs to do
 reg [7:0] LastOutput = 8'd255;
 
 always @(posedge clk_sys) begin
