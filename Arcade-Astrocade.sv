@@ -98,6 +98,7 @@ module emu
 	input  [11:0] HDMI_HEIGHT,
 	output        HDMI_FREEZE,
 	output        HDMI_BLACKOUT,
+	output        HDMI_BOB_DEINT,
 	
 `ifdef MISTER_FB	
 	// Use framebuffer from DDRAM (USE_FB=1 in qsf)
@@ -219,6 +220,7 @@ assign VGA_SCALER  = 0;
 assign VGA_DISABLE = 0;
 assign HDMI_FREEZE = 0;
 assign HDMI_BLACKOUT = 0;
+assign HDMI_BOB_DEINT = 0;
 assign FB_FORCE_BLANK = 0;
 
 assign ADC_BUS  = 'Z;
@@ -257,10 +259,13 @@ localparam CONF_STR = {
 	"H1H0O2,Orientation,Vert,Horz;",
 	"O35,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
 	"-;",
+	"H2OR,Autosave Hiscores,Off,On;",
+	"H2OP,Pause when OSD is open,On,Off;",
+	"-;",
 	"DIP;",
 	"-;",
 	"R0,Reset;",
-	"J1,Fire 1,Fire 2,Start 1P,Start 2P,Coin;",
+	"J1,Fire 1,Fire 2,Start 1P,Start 2P,Coin,Pause;",
 	"V,v",`BUILD_DATE
 };
 
@@ -300,9 +305,12 @@ reg   [7:0] Light_Data = 0;
 wire        forced_scandoubler;
 
 wire        ioctl_download;
+wire        ioctl_upload;
+wire        ioctl_upload_req;
 wire        ioctl_wr;
 wire [24:0] ioctl_addr;
 wire [15:0] ioctl_dout;
+wire  [7:0] ioctl_din;
 wire  [7:0] ioctl_index;
 wire        ioctl_wait = 0;
 wire        direct_video;
@@ -320,13 +328,16 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 	.status(status),
 	.forced_scandoubler(forced_scandoubler),
 	.gamma_bus(gamma_bus),
-	.status_menumask({~mod_gorf,direct_video}),
+	.status_menumask({~HighScore,~mod_gorf,direct_video}),
 	.direct_video(direct_video),
 
+	.ioctl_upload(ioctl_upload),
+	.ioctl_upload_req(ioctl_upload_req),
 	.ioctl_download(ioctl_download),
 	.ioctl_wr(ioctl_wr),
 	.ioctl_addr(ioctl_addr),
 	.ioctl_dout(ioctl_dout),
+	.ioctl_din(ioctl_din),	
 	.ioctl_index(ioctl_index),
 	.ioctl_wait(ioctl_wait),
 	
@@ -370,9 +381,6 @@ always @(posedge clk_sys) begin
 end
 
 
-
-
-
 // Game options
 reg  Gorf1 = 1'b0;												// Default is Gorf selected
 wire Stereo    = mod_gorf | mod_wow | mod_robby;      // Two sound chips fitted
@@ -381,6 +389,7 @@ wire LightPen  = mod_wow | mod_gorf;                  // Light pen interrupt use
 wire High_Rom  = ~mod_seawolf2;	                     // Seawolf2 has ram C000-CFFF, everything else 8000-CFFF is ROM
 wire Extra_Rom = mod_robby;  									// Robby has ROM D000-EFFF as well
 wire OnlySamples = mod_seawolf2;                      // Uses samples but no sound chip
+wire HighScore = mod_gorf | mod_wow | mod_robby;		// High score enabled for these games
 
 `ifdef CABINET														// Uses samples AND sound chip unless Cabinet DIP set for WOW (DIP on = Cabinet mode)
 	wire PlusSamples = mod_gorf | (mod_wow & ~sw[4][0]); 
@@ -467,6 +476,9 @@ wire B1_FB =joystick_0[5];
 	wire B2_FB =joystick_0[14];
 	wire B2_C = joystick_0[15];
 	
+	// no pause on cab
+	wire m_pause = 1'b0;
+	
 	// Extra buttons for Gorf (and others, but only used for Gorf so far)
 	wire B1_TEST = mod_gorf ? ((~joystick_0[14] || ~Test_Enable) && sw[2][1]) : 1'b1; // test combines button (once pressed) and dip setting
 	wire B1_SLAM = mod_gorf ? joystick_0[5] : 1'b0;
@@ -491,9 +503,10 @@ wire B1_FB =joystick_0[5];
 	wire B2_F = joystick_1[4];
 	wire B2_FB =joystick_1[5];
 	wire B2_C = joystick_0[9];
-	// Use DIP switch for test, disable slam
+	// Use DIP switch for test, disable slam, allow pause
 	wire B1_TEST = sw[2][1];
 	wire B1_SLAM = 1'b0;
+	wire m_pause = joystick_0[10];
 `endif
 
 // Freeplay option for Space Zap - blitter disables CPU so set signals for a long time!
@@ -659,7 +672,7 @@ wire HBlank;
 wire [8:0] HCount;
 wire [10:0] VCount;
 reg ce_pix;
-wire flip = 0; // Test!
+wire flip = 0;
 
 // Corrected VCount (allowing for interlaced output)
 wire [10:0] MyVCount = (VCount >= 11'd264) ? VCount - 11'd263 : VCount;
@@ -675,6 +688,7 @@ end
 
 //actual: 0-225, 0-238
 //quoted: 160/320, 102/204
+
 wire no_rotate =  status[2] | direct_video | ~mod_gorf;
 
 arcade_video #(.WIDTH(360), .DW(24), .GAMMA(1)) arcade_video
@@ -766,9 +780,16 @@ BALLY bally
 	.O_TRACK_S      (track_select), // eBases trackball axis select
 	.O_LAMPS			 (Light_Data),	// Lamp on/off
 
+	// High Score
+	.CPU_PAUSE	    (pause_cpu),
+	.HS_ADDR		    (hs_address),
+	.HS_DIN         (ioctl_dout),
+	.HS_DOT         (hs_data_out),
+	.HS_WR          (hs_write_enable),
+
 	// System
 	.I_RESET_L      (~reset), //    : in    std_logic;
-	.ENA            (clk_cpu_en), //    : in    std_logic;
+	.ENA            (clk_cpu_en & ~pause_cpu), //    : in    std_logic;
 	.CLK            (clk_sys) //    : in    std_logic
 );
 
@@ -1029,7 +1050,7 @@ always @(posedge MY_CLK_VIDEO) begin
 		if(ce_pix == 1'd1) begin
 
 			// Check for screen flash pixel
-			if ((MyVCount == 25) && (HCount == 70)) begin // may need to be 69!
+			if ((MyVCount == 25) && (HCount == 70)) begin
 				ScreenFlash <= R[0];
 			end;
 		
@@ -1064,8 +1085,50 @@ always @(posedge MY_CLK_VIDEO) begin
 	end
 end
 
+// PAUSE SYSTEM
+// ------------
+wire pause_cpu;
+
+pause #(8,8,8,14) pause (
+	.*,
+	.r(),
+	.g(),
+	.b(),
+	.rgb_out(),
+	.user_button(m_pause),
+	.pause_request(hs_pause),
+	.options(~status[26:25])
+);
+
+// HISCORE SYSTEM
+// --------------
+wire hs_pause;
+
+// NVRAM for Robby at $E000 but $D000 for Gorf and Wow
+wire [15:0] load_hs = mod_robby ? {6'd56,ioctl_addr[9:0]} : {6'd52,ioctl_addr[9:0]};
+wire [15:0] save_hs = mod_robby ? {6'd56,nvram_address} : {6'd52,nvram_address};
+wire [15:0] hs_address = hs_write_enable ? load_hs : save_hs;
+wire [9:0]  nvram_address;
+wire [7:0]  hs_data_out;
+wire        hs_write_enable = (ioctl_wr && (ioctl_index == 4));
+wire [9:0]  nvram_size = mod_robby ? 11'd1023 : mod_gorf ? 11'd127 : 11'd63;
+
+nvram #(
+	.DUMPWIDTH(10)
+) nvram (
+	.*,
+	.clk(clk_sys),
+	.paused(pause_cpu),
+	.autosave(status[27]),
+	.nvramsize(nvram_size),
+	.nvram_address(nvram_address),
+	.nvram_data_out(hs_data_out),
+	.ioctl_dout(ioctl_dout[7:0]),
+	.pause_cpu(hs_pause)
+);
 
 // Cabinet specific routines
+// -------------------------
 
 `ifdef CABINET
 
