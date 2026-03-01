@@ -54,12 +54,23 @@
 		<part crc="e762cbda" name="rotox10.bin"></part>
 		</rom>
 	<rom index="2"></rom>
-	<rom index="3"></rom>
-	<rom index="4"></rom>
+	<rom index="3">
+		<part>
+		00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+		00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+		00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+                00 00 00 F8 FF FF FF FF FF FF FF FF FF 00 00 00
+		00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+		00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+		00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+		00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+		</part>
+	</rom>
+	<nvram index="4" size="1024"/>
 
-	<nvram></nvram>
-
-	<remark></remark>
+	<remark>
+		Robby always clears scores 12-21 on start. It only retains 1-11!
+	</remark>
 
 	<mratimestamp>20210430005030</mratimestamp>
 </misterromdescription>

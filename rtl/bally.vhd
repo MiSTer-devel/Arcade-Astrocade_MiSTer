@@ -99,6 +99,12 @@ entity BALLY is
 	 O_TRACK_S		     : out   std_logic_vector(1 downto 0);
 	 O_LAMPS				  : out   std_logic_vector(7 downto 0);
 	 --
+	 CPU_PAUSE			  : in    std_logic; -- CPU Pause
+	 HS_ADDR            : in    std_logic_vector(15 downto 0);
+	 HS_DIN             : in    std_logic_vector(7 downto 0);
+	 HS_DOT             : out   std_logic_vector(7 downto 0);
+	 HS_WR  			     : in    std_logic;
+	 --
     I_RESET_L          : in    std_logic;
     ENA                : in    std_logic;
     CLK                : in    std_logic	 
@@ -251,6 +257,7 @@ architecture RTL of BALLY is
   signal patram           : std_logic_vector(7 downto 0);	
 
   signal addr_bus         : std_logic_vector(15 downto 0);
+  signal split_bus        : std_logic_vector(15 downto 0);
   signal data_bus         : std_logic_vector(7 downto 0);
   signal mux_rd_l         : std_logic;
   signal mux_mr_l         : std_logic;
@@ -686,6 +693,10 @@ O_AUDIO_R <= Gen_Audio_R;
     end if;
   end process;
 
+  -- High score remapping
+  split_bus <= HS_ADDR when (CPU_PAUSE='1' or HS_WR='1') else addr_bus;
+  HS_DOT    <= patram;
+  
   u_rams : entity work.BALLY_RAMS
     port map (
     ADDR     => ma_bus,
@@ -697,10 +708,14 @@ O_AUDIO_R <= Gen_Audio_R;
     ENA      => ENA,
     CLK      => CLK,
 	 -- Pattern board access to read ram (also used when Gorf runs code from RAM)
-	 PAT_ADDR => addr_bus,
-	 PAT_DATA => patram
+	 -- Also used for High Score when CPU_PAUSE = 1
+	 PAT_ADDR => split_bus,		-- was addr_bus
+	 PAT_DATA => patram,
+	 HS_DIN   => HS_DIN,
+	 HS_WR    => HS_WR
     );
 
+	 
 	O_SAMP_L    <= SW_Sampl_L when I_SEAWOLF='1' else 
 	               GF_Sampl_L when I_GORF='1' else
 						WOW_Sampl_L;

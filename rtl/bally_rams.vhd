@@ -59,7 +59,9 @@ entity BALLY_RAMS is
   CLK      : in  std_logic;
   
   PAT_ADDR : in  std_logic_vector(15 downto 0);
-  PAT_DATA : out std_logic_vector(7  downto 0)
+  PAT_DATA : out std_logic_vector(7  downto 0);
+  HS_DIN   : in  std_logic_vector(7 downto 0);
+  HS_WR    : in  std_logic
   );
 end;
 
@@ -71,6 +73,9 @@ architecture RTL of BALLY_RAMS is
   signal addr_t1          : std_logic_vector(15 downto 0);
   signal int_we_h         : std_logic_vector(7 downto 0);
   signal int_we_l         : std_logic_vector(7 downto 0);
+
+  signal hs_we_h         : std_logic_vector(7 downto 0);
+  signal hs_we_l         : std_logic_vector(7 downto 0);
 
   signal pout_int_h       : array_7x8;
   signal pout_int_l       : array_7x8;
@@ -113,33 +118,30 @@ begin
     end case;
   end process;
 
+  -- High score write to memory
+  
+  h_we : process(PAT_ADDR, HS_WR)
+    variable h,l : std_logic;
+  begin
+    hs_we_h <= (others => '0');
+    hs_we_l <= (others => '0');
+    l := (not PAT_ADDR(0)) and HS_WR;
+    h :=      PAT_ADDR(0)  and HS_WR;
+	 
+    -- high scores only saved in high ram, so skip rest
+	 
+    case PAT_ADDR(15 downto 12) is
+      when x"C" => hs_we_h(4) <= h; hs_we_l(4) <= l;
+      when x"D" => hs_we_h(5) <= h; hs_we_l(5) <= l;
+      when x"E" => hs_we_h(6) <= h; hs_we_l(6) <= l;
+      when x"F" => hs_we_h(7) <= h; hs_we_l(7) <= l;
+      -- 
+      when others => null;
+    end case;
+  end process;  
+  
   rams : for i in 0 to 7 generate
   begin
---    ram_u : entity work.spram
---      generic map (
---        addr_width => 11
---      )
---      port map (
---        q        => dout_int_h(i)(7 downto 0),
---        data     => DIN(7 downto 0),
---        address  => ADDR(11 downto 1),
---        wren     => int_we_h(i),
---        enable   => ENA,
---        clock    => CLK
---        );
---
---    ram_l : entity work.spram
---      generic map (
---        addr_width => 11
---      )
---      port map (
---        q        => dout_int_l(i)(7 downto 0),
---        data     => DIN(7 downto 0),
---        address  => ADDR(11 downto 1),
---        wren     => int_we_l(i),
---        enable   => ENA,
---        clock    => CLK
---        );
 
     ram_u : entity work.dpram
       generic map (
@@ -154,7 +156,9 @@ begin
         clock    => CLK,
 		  
 		  address_b  => PAT_ADDR(11 downto 1),
-		  q_b        => pout_int_h(i)(7 downto 0)
+		  q_b        => pout_int_h(i)(7 downto 0),
+		  data_b     => HS_DIN,
+		  wren_b     => hs_we_h(i)
         );
 
     ram_l : entity work.dpram
@@ -170,7 +174,9 @@ begin
         clock    => CLK,
 		  
 		  address_b  => PAT_ADDR(11 downto 1),
-		  q_b        => pout_int_l(i)(7 downto 0)
+		  q_b        => pout_int_l(i)(7 downto 0),
+		  data_b     => HS_DIN,
+		  wren_b     => hs_we_l(i)
         );
 		
 	end generate;

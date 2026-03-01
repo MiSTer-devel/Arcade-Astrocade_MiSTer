@@ -22,6 +22,7 @@
 -- V 2.0 24/04/2024   Add Freeplay for Space Zap
 --                    Improve sound mixing
 -- V 2.1 02/07/2024   Add Frame Advance DIP setting for Gorf
+-- V 2.2 01/03/2026   Add high score saving for Gorf, Wizard of Wor and Adventures of Robby Roto
 --
 ------------------------------------------------------------------------------------
 -- From FPGA implementation of the Bally Astrocade based on a project by MikeJ et al
@@ -79,6 +80,9 @@
 -- Robby Roto
 -- ----------
 -- setup using digital joystick
+-- 
+-- Hiscore always resets scores 12-21 on switch on, so only the scores above this will save
+-- You also need the Dips USE NVRAM and Use Settings to Yes
 --
 -- Gorf
 -- ----
