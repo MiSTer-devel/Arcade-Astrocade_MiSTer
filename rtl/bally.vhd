@@ -107,7 +107,8 @@ entity BALLY is
 	 --
     I_RESET_L          : in    std_logic;
     ENA                : in    std_logic;
-    CLK                : in    std_logic	 
+    CLK                : in    std_logic;
+    CLK_SND            : in    std_logic
 );
 end;
 
@@ -137,55 +138,35 @@ architecture RTL of BALLY is
 	);  -- sys clock (14 Mhz)
 	END COMPONENT;
 
-	COMPONENT GorfSound PORT (
-		GORF1  		: in  std_logic;
-		s_enable  	: in  std_logic;
-		s_addr    	: out std_logic_vector(23 downto 0);
-		s_data    	: in  std_logic_vector(15 downto 0);
-		s_read    	: out std_logic;
-		s_ready     : in  std_logic;
-		-- Sounds out
-		audio_out_l : out std_logic_vector(15 downto 0);
-		audio_out_r : out std_logic_vector(15 downto 0);
-		votrax      : out std_logic;     
-		-- cpu
-		I_MXA    	: in  std_logic_vector(15 downto 0);
-		I_RESET_L 	: in  std_logic;
-		I_M1_L    	: in  std_logic;
-		I_RD_L    	: in  std_logic;
-		I_IORQ_L  	: in  std_logic;
-		I_HL        : in  std_logic_vector(15 downto 0);
-		 -- clks
-		I_CPU_ENA 	: in  std_logic; -- cpu clock ena
-		ENA       	: in  std_logic; 
-		CLK       	: in  std_logic
-	);
-	END COMPONENT;
 
-	COMPONENT WoWSound PORT (
-		s_enable  	: in  std_logic;
-		s_addr    	: out std_logic_vector(23 downto 0);
-		s_data    	: in  std_logic_vector(15 downto 0);
-		s_read    	: out std_logic;
-		s_ready     : in  std_logic;
-		
-		-- Sounds out
-		audio_out_l : out std_logic_vector(15 downto 0);
-		audio_out_r : out std_logic_vector(15 downto 0);
-		votrax      : out std_logic;     
-		-- cpu
-		I_MXA    	: in  std_logic_vector(15 downto 0);
-		I_RESET_L 	: in  std_logic;
-		I_M1_L    	: in  std_logic;
-		I_RD_L    	: in  std_logic;
-		I_IORQ_L  	: in  std_logic;
-		I_HL        : in  std_logic_vector(15 downto 0);
-		 -- clks
-		I_CPU_ENA 	: in  std_logic; -- cpu clock ena
-		ENA       	: in  std_logic; 
-		CLK       	: in  std_logic
-	);
-	END COMPONENT;
+	component VotraxSound is
+    generic (
+        CLK_HZ  : integer := 28_000_000
+    );
+    port (
+        I_VOTRAX_DATA : in  std_logic_vector(7 downto 0);
+        I_VOTRAX_STB  : in  std_logic;
+        O_VOTRAX_AR   : out std_logic;
+
+        s_enable      : in  std_logic;
+        audio_out     : out signed(17 downto 0);
+        audio_valid   : out std_logic;
+
+        I_RESET_L     : in  std_logic;
+        CLK           : in  std_logic
+    );
+	end component;
+	
+	component bally_rc_filter is
+		 port (
+			  clk         : in  std_logic;
+			  reset_n     : in  std_logic;
+			  s_in        : in  signed(17 downto 0);
+			  s_valid     : in  std_logic;
+			  s_out       : out signed(17 downto 0);
+			  s_out_valid : out std_logic
+		 );
+	end component;	
 
 	--  signals
   signal cpu_ena          : std_logic;
@@ -277,26 +258,32 @@ architecture RTL of BALLY is
   signal SW_Sampl_L       : std_logic_vector(15 downto 0);
   signal SW_Sampl_R       : std_logic_vector(15 downto 0);
   signal SW_Sampl_A       : std_logic_vector(23 downto 0);
-  signal GF_Sampl_L       : std_logic_vector(15 downto 0);
-  signal GF_Sampl_R       : std_logic_vector(15 downto 0);
-  signal GF_Sampl_A       : std_logic_vector(23 downto 0);
   signal SW_Read          : std_logic;
-  signal GF_Read          : std_logic;
-  signal GF_Votrax        : std_logic;
-  signal WOW_Sampl_L      : std_logic_vector(15 downto 0);
-  signal WOW_Sampl_R      : std_logic_vector(15 downto 0);
-  signal WOW_Sampl_A      : std_logic_vector(23 downto 0);
-  signal WOW_Read         : std_logic;
-  signal WOW_Votrax       : std_logic;
-  
+  signal Votrax_Sampl_L   : std_logic_vector(15 downto 0);
+  signal Votrax_Sampl_R   : std_logic_vector(15 downto 0);
+
   signal Gen_Audio_L      : std_logic_vector(5 downto 0);
   signal Gen_Audio_R      : std_logic_vector(5 downto 0);
-  
+
   -- Sparkled Colour
-  signal s_red				  : std_logic_vector(7 downto 0);
-  signal s_green			  : std_logic_vector(7 downto 0);
+  signal s_red			  : std_logic_vector(7 downto 0);
+  signal s_green		  : std_logic_vector(7 downto 0);
   signal s_blue			  : std_logic_vector(7 downto 0);
 
+  -- votrax
+  signal votrax_data      : std_logic_vector(7 downto 0);
+  signal votrax_stb       : std_logic;
+  signal votrax_stb_i     : std_logic;
+  signal votrax_ar        : std_logic;
+  signal votrax_audio     : signed(17 downto 0);
+  signal votrax_valid     : std_logic;
+
+  -- output low pass
+  signal rc_out         : signed(17 downto 0);
+  signal rc_amp         : signed(18 downto 0); -- *1.5 intermediate
+  signal rc_valid       : std_logic;
+
+  signal io_so7           : std_logic;
 begin
   --
   -- cpu
@@ -548,7 +535,10 @@ O_AUDIO_R <= Gen_Audio_R;
       -- clks
       I_CPU_ENA         => cpu_ena,
       ENA               => ENA,
-      CLK               => CLK
+      CLK               => CLK,
+
+      -- wired to votrax stb
+      O_SO7             => io_so7
       );
 
   -- Second IO chip (for Stereo games)
@@ -715,22 +705,17 @@ O_AUDIO_R <= Gen_Audio_R;
 	 HS_WR    => HS_WR
     );
 
-	 
-	O_SAMP_L    <= SW_Sampl_L when I_SEAWOLF='1' else 
-	               GF_Sampl_L when I_GORF='1' else
-						WOW_Sampl_L;
-	O_SAMP_R    <= SW_Sampl_R when I_SEAWOLF='1' else 
-					   GF_Sampl_R when I_GORF='1' else
-						WOW_Sampl_R;
-	O_SAMP_ADDR <= SW_Sampl_A when I_SEAWOLF='1' else 
-	               GF_Sampl_A when I_GORF='1' else
-						WOW_Sampl_A;
-	O_SAMP_READ <= SW_Read    when I_SEAWOLF='1' else 
-	               GF_Read    when I_GORF='1' else
-						WOW_Read;
-	O_SAMP_BUSY <= GF_Votrax  when I_GORF='1' else
-						WOW_Votrax;
-	 
+
+	O_SAMP_L    <= SW_Sampl_L when I_SEAWOLF='1' else
+	                   Votrax_Sampl_L;
+	O_SAMP_R    <= SW_Sampl_R when I_SEAWOLF='1' else
+					   Votrax_Sampl_R;
+	O_SAMP_ADDR <= SW_Sampl_A when I_SEAWOLF='1' else
+	               (others => '0');
+	O_SAMP_READ <= SW_Read    when I_SEAWOLF='1' else
+	               '0';
+	O_SAMP_BUSY <= votrax_ar;
+
  seasound : SeawolfSound
    port map (
 		cpu_addr  	=> cpu_addr,
@@ -754,57 +739,55 @@ O_AUDIO_R <= Gen_Audio_R;
 		ENA         => ENA,
 		CLK         => CLK
 	);
-	
- gorfvotrax : GorfSound
-   port map (
-		GORF1		=> GORF1,
-		I_MXA     	=> cpu_addr,
-		-- Sample Info
-		s_enable  	=> I_GORF,
-		s_addr    	=> GF_Sampl_A,
-		s_data    	=> I_SAMP_DATA,
-		s_read    	=> GF_Read,
-		s_ready     => I_SAMP_READY,
-		-- Sounds
-		audio_out_l => GF_Sampl_L,
-		audio_out_r => GF_Sampl_R,
-		votrax		=> GF_Votrax,
-		-- cpu
-		I_RESET_L 	=> I_RESET_L,
-		I_M1_L    	=> cpu_m1_l,
-		I_RD_L    	=> cpu_rd_l,
-		I_IORQ_L  	=> cpu_iorq_l,
-		I_HL        => cpu_hl,
-		 -- clks
-		I_CPU_ENA   => cpu_ena,
-		ENA         => ENA,
-		CLK         => CLK
-	);
 
- wowvotrax : WoWSound
-   port map (
+    -- ================================================================
+    -- SC01-A synthesizer + DDS + resampler (48 kHz output)
+    -- ================================================================
+    u_votrax : VotraxSound
+        generic map (
+            CLK_HZ => 28000000
+        )
+        port map (
+            CLK           => CLK_SND,
+            I_RESET_L     => I_RESET_L,
+            I_VOTRAX_DATA => votrax_data,
+            I_VOTRAX_STB  => votrax_stb,
+            O_VOTRAX_AR   => votrax_ar,
+            s_enable      => I_WOW or I_GORF,
+            audio_out     => votrax_audio,
+            audio_valid   => votrax_valid
+        );
 
-		I_MXA     	=> cpu_addr,
-		-- Sample Info
-		s_enable  	=> I_WOW,
-		s_addr    	=> WoW_Sampl_A,
-		s_data    	=> I_SAMP_DATA,
-		s_read    	=> WOW_Read,
-		s_ready     => I_SAMP_READY,
-		-- Sounds
-		audio_out_l => WOW_Sampl_L,
-		audio_out_r => WOW_Sampl_R,
-		votrax		=> WOW_Votrax,
-		-- cpu
-		I_RESET_L 	=> I_RESET_L,
-		I_M1_L    	=> cpu_m1_l,
-		I_RD_L    	=> cpu_rd_l,
-		I_IORQ_L  	=> cpu_iorq_l,
-		I_HL        => cpu_hl,
-		 -- clks
-		I_CPU_ENA   => cpu_ena,
-		ENA         => ENA,
-		CLK         => CLK
-	);
-	
+    -- ================================================================
+    -- Bally on-board RC lowpass filter
+    -- 4x (R=110kOhm, C=560pF) -> fc ~2584 Hz, fs=48 kHz
+    -- ================================================================
+    u_rc : bally_rc_filter
+        port map (
+            clk         => CLK_SND,
+            reset_n     => I_RESET_L,
+            s_in        => votrax_audio,
+            s_valid     => votrax_valid,
+            s_out       => rc_out,
+            s_out_valid => open
+        );
+
+    -- x1.5 gain (rc_out + rc_out>>1), saturate to 16-bit
+    rc_amp <= resize(rc_out, 19) + resize(shift_right(rc_out, 1), 19);
+
+    Votrax_Sampl_L <= std_logic_vector(to_signed( 32767, 16)) when rc_amp >  65535 else
+                      std_logic_vector(to_signed(-32768, 16)) when rc_amp < -65536 else
+                      std_logic_vector(rc_amp(16 downto 1));
+    Votrax_Sampl_R <= Votrax_Sampl_L;
+
+  votrax_stb_p : process
+  begin
+    wait until rising_edge(CLK);
+    votrax_stb <= '0';
+    if io_so7 = '1' then
+      votrax_data <= cpu_addr(15 downto 8);
+      votrax_stb  <= '1';
+    end if;
+  end process;
+
 end RTL;

@@ -23,6 +23,7 @@
 --                    Improve sound mixing
 -- V 2.1 02/07/2024   Add Frame Advance DIP setting for Gorf
 -- V 2.2 01/03/2026   Add high score saving for Gorf, Wizard of Wor and Adventures of Robby Roto
+--       13/03/2026   Replaced sample based speech generation with Votrax SC01 module on Gorf and WOW
 --
 ------------------------------------------------------------------------------------
 -- From FPGA implementation of the Bally Astrocade based on a project by MikeJ et al
@@ -30,8 +31,8 @@
 --
 -- Important info regarding Frame Buffer (FB)
 --
--- Depending upon the setting of FB when this core is built, the samples (for Seawolf II, 
--- Gorf with speech and Wizard of Wor with speech) will use DDRAM or SDRAM. 
+-- Depending upon the setting of FB when this core is built, the samples (for Seawolf II)
+-- will use DDRAM or SDRAM.
 --
 -- If FB is not defined, then the games will work on a bare DE10-Nano as they do not 
 -- need SDRAM for any purpose but the screen will not rotate - this only affects Gorf
@@ -75,7 +76,7 @@
 -- digital is implemented as directions and two fire buttons. (as per Mame)
 -- analogue should work the same as the real game.
 --
--- SC-01A speech implemented using full sentences recorded as samples
+-- SC-01 speech implemented using a fixed-point VHDL port of MAME’s Votrax SC-01 core.
 --
 -- Robby Roto
 -- ----------
@@ -86,11 +87,11 @@
 --
 -- Gorf
 -- ----
--- SC-01A speech implemented using words recorded as samples
--- Sound options 
---      Stereo will play voice samples on both channels
---      Cabinet will play one channel through top speaker, other channel or voice samples
---          through bottom speaker. (as per original hardware) 
+-- SC-01 speech implemented using a fixed-point VHDL port of MAME’s Votrax SC-01 core.
+-- Sound options
+--      Stereo will play all audio on both channels.
+--      Cabinet will play one channel through the top speaker and the other channel
+--          through the bottom speaker (as per original hardware).
 ---------------------------------------------------------------------------------
 
                                 *** Attention ***

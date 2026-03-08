@@ -790,7 +790,8 @@ BALLY bally
 	// System
 	.I_RESET_L      (~reset), //    : in    std_logic;
 	.ENA            (clk_cpu_en & ~pause_cpu), //    : in    std_logic;
-	.CLK            (clk_sys) //    : in    std_logic
+	.CLK            (clk_sys), //    : in    std_logic;
+	.CLK_SND        (clk_snd) //    : in    std_logic;
 );
 
 ////////////////////////////  MEMORY  ///////////////////////////////////
