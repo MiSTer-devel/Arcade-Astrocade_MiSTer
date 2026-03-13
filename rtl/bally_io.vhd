@@ -76,7 +76,10 @@ entity BALLY_IO is
     -- clks
     I_CPU_ENA         : in    std_logic;
     ENA               : in    std_logic;
-    CLK               : in    std_logic
+    CLK               : in    std_logic;
+
+    -- SO7 is set by I/O read on $17
+    O_SO7             : out   std_logic
     );
 end;
 
@@ -116,7 +119,9 @@ architecture RTL of BALLY_IO is
 
   signal tone_gen             : array_3x8 := (others => (others => '0'));
   signal tone_gen_op          : std_logic_vector(2 downto 0);
- 
+
+  signal so7_read             : std_logic;
+
 begin
 
   p_chip_sel             : process(I_CPU_ENA, I_MXA, I_BASE)
@@ -209,11 +214,15 @@ begin
     io_read <= '0';
     switch_read <= '0';
     pot_read <= '0';
+    so7_read <= '0';
     if (I_MXA(7 downto 4) = "0001") then
       if (I_IORQ_L = '0') and (I_RD_L = '0') then
         io_read <= '1';
         if (I_MXA(3) = '0') then
           switch_read <= '1';
+        end if;
+        if (I_MXA(3 downto 0) = "0111") then
+          so7_read <= '1';
         end if;
         if (I_MXA(3 downto 2) = "11") then
           pot_read <= '1';
@@ -457,6 +466,12 @@ begin
       end if;
    end if;
   end process;
- 
+
+  so7 : process
+  begin
+    wait until rising_edge(CLK);
+    O_SO7 <= ENA and I_CPU_ENA and so7_read;
+  end process;
+
 end architecture RTL;
 
