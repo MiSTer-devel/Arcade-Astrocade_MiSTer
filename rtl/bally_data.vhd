@@ -102,6 +102,7 @@ entity BALLY_DATA is
 	 
 	 -- Dips
 	 I_BRIGHTSTAR      : in    std_logic; -- If set then make stars brighter in Gorf
+	 CPU_PAUSE			 : in    std_logic; -- CPU Pause
 
     -- clks
     O_CPU_ENA         : out   std_logic; -- cpu clock ena
@@ -389,7 +390,7 @@ begin
       pix_load <= cpu_ena;
     end if;
   end process;
-  O_CPU_ENA <= cpu_ena;
+  O_CPU_ENA <= cpu_ena and (not CPU_PAUSE);
   O_PIX_ENA <= pix_ena;
 
   p_micro_gen            : process
@@ -827,7 +828,7 @@ begin
       O_HSYNC <= hsync;
       O_VSYNC <= vsync_t1;
 
-      if (sg_blank = '1') then
+      if (sg_blank = '1' or CPU_PAUSE = '1') then
         O_VIDEO_R <= "00000000";
         O_VIDEO_G <= "00000000";
         O_VIDEO_B <= "00000000";

@@ -58,13 +58,14 @@
 		<part crc="4e2bd9b9" name="gorf-g.bin"></part>
 		<part crc="fe7b863d" name="gorf-h.bin"></part>
 		</rom>
-	<rom index="3">
+	<rom index="5">
 		<part>
-                00 00 FF FF FF FF 0F 00 00 00 00 00 00 00 00 00
+		00 00 FF FF 00 FF 00 02 00 02 00 01 00 FF 02 00
+		00 00 D0 10 00 0F 00 00
+		00 00 D0 23 00 0F 00 00
 		</part>
 	</rom>
-	<nvram index="4" size="128"/>
-
+	<nvram index="6" size="30"/>
 	<remark></remark>
 
 	<mratimestamp>20210430005030</mratimestamp>

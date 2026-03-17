@@ -38,7 +38,6 @@ module nvram
 	input										paused,			// Signal from core confirming CPU is paused
 	input										reset,
 	input										autosave,		// Auto-save enabled (active high)
-	input   [DUMPWIDTH-1:0]          nvramsize,
 
 	input										ioctl_upload,
 	output reg								ioctl_upload_req,
@@ -145,7 +144,7 @@ begin
 		next_state <= SM_IDLE;
 		state <= SM_IDLE;
 		extracting_dump <= 1'b0;
-		buffer_length <= nvramsize; // (2**DUMPWIDTH) - 1'b1;
+		buffer_length <= (2**DUMPWIDTH) - 1'b1;
 	end
 	else
 	begin

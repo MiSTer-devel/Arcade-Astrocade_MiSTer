@@ -309,6 +309,7 @@ begin
   cpu_nmi_l   <= '1';
   
   cpu_ena_gated <= ENA and cpu_ena;
+  
   u_cpu : entity work.T80s
           port map (
 				  RESET_n => I_RESET_L,
@@ -494,6 +495,7 @@ begin
 		I_LP_H            => lightpen_h,
 		-- Options       
 		I_BRIGHTSTAR      => I_BRIGHTSTAR,
+		CPU_PAUSE			=> CPU_PAUSE,
 		-- clks
       O_CPU_ENA         => cpu_ena, -- cpu clock ena
       O_PIX_ENA         => pix_ena, -- pixel clock ena

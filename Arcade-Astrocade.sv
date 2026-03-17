@@ -306,11 +306,9 @@ wire        forced_scandoubler;
 
 wire        ioctl_download;
 wire        ioctl_upload;
-wire        ioctl_upload_req;
 wire        ioctl_wr;
 wire [24:0] ioctl_addr;
 wire [15:0] ioctl_dout;
-wire  [7:0] ioctl_din;
 wire  [7:0] ioctl_index;
 wire        ioctl_wait = 0;
 wire        direct_video;
@@ -328,7 +326,7 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 	.status(status),
 	.forced_scandoubler(forced_scandoubler),
 	.gamma_bus(gamma_bus),
-	.status_menumask({~HighScore,~mod_gorf,direct_video}),
+	.status_menumask({~(HighScore | NVRam),~mod_gorf,direct_video}),
 	.direct_video(direct_video),
 
 	.ioctl_upload(ioctl_upload),
@@ -389,7 +387,8 @@ wire LightPen  = mod_wow | mod_gorf;                  // Light pen interrupt use
 wire High_Rom  = ~mod_seawolf2;	                     // Seawolf2 has ram C000-CFFF, everything else 8000-CFFF is ROM
 wire Extra_Rom = mod_robby;  									// Robby has ROM D000-EFFF as well
 wire OnlySamples = mod_seawolf2;                      // Uses samples but no sound chip
-wire HighScore = mod_gorf | mod_wow | mod_robby;		// High score enabled for these games
+wire HighScore = mod_gorf | mod_wow;						// High score enabled for these games
+wire NVRam     = mod_robby;									// NVRam used by these games
 
 `ifdef CABINET														// Uses samples AND sound chip unless Cabinet DIP set for WOW (DIP on = Cabinet mode)
 	wire PlusSamples = mod_gorf | (mod_wow & ~sw[4][0]); 
@@ -783,13 +782,13 @@ BALLY bally
 	// High Score
 	.CPU_PAUSE	    (pause_cpu),
 	.HS_ADDR		    (hs_address),
-	.HS_DIN         (ioctl_dout),
+	.HS_DIN         (hs_data_in),
 	.HS_DOT         (hs_data_out),
 	.HS_WR          (hs_write_enable),
 
 	// System
 	.I_RESET_L      (~reset), //    : in    std_logic;
-	.ENA            (clk_cpu_en & ~pause_cpu), //    : in    std_logic;
+	.ENA            (clk_cpu_en), //    : in    std_logic;
 	.CLK            (clk_sys), //    : in    std_logic;
 	.CLK_SND        (clk_snd) //    : in    std_logic;
 );
@@ -1101,31 +1100,71 @@ pause #(8,8,8,14) pause (
 	.options(~status[26:25])
 );
 
-// HISCORE SYSTEM
-// --------------
-wire hs_pause;
-
-// NVRAM for Robby at $E000 but $D000 for Gorf and Wow
-wire [15:0] load_hs = mod_robby ? {6'd56,ioctl_addr[9:0]} : {6'd52,ioctl_addr[9:0]};
-wire [15:0] save_hs = mod_robby ? {6'd56,nvram_address} : {6'd52,nvram_address};
-wire [15:0] hs_address = hs_write_enable ? load_hs : save_hs;
-wire [9:0]  nvram_address;
+// HISCORE SYSTEMS
+// ---------------
+wire        Pause_NV, Pause_HS;
+wire        ioctl_upload_req_NV,ioctl_upload_req_HS;
+wire [7:0]  ioctl_din_NV,ioctl_din_HS;
 wire [7:0]  hs_data_out;
-wire        hs_write_enable = (ioctl_wr && (ioctl_index == 4));
-wire [9:0]  nvram_size = mod_robby ? 11'd1023 : mod_gorf ? 11'd127 : 11'd63;
+
+// Multiplex NVRam and Highscore
+wire        hs_pause = HighScore ? Pause_HS : Pause_NV;
+wire        hs_write_enable = HighScore ? hs_write_enable_hs : (ioctl_wr && (ioctl_index == 4));
+wire [15:0] hs_address = HighScore ? hs_address_o : (hs_write_enable ? load_hs : save_hs);
+wire [7:0]  hs_data_in = HighScore ? hs_data_in_hs :ioctl_dout[7:0];
+wire        ioctl_upload_req = HighScore ? ioctl_upload_req_HS : ioctl_upload_req_NV;
+wire [7:0]  ioctl_din = HighScore ? ioctl_din_HS : ioctl_din_NV;
+
+
+// NVRAM for Robby at $E000
+wire [15:0] load_hs = {6'd56,ioctl_addr[9:0]};
+wire [15:0] save_hs = {6'd56,nvram_address};
+wire [9:0]  nvram_address;
 
 nvram #(
 	.DUMPWIDTH(10)
 ) nvram (
 	.*,
+	.OSD_STATUS(OSD_STATUS & NVRam),
+	.ioctl_upload_req(ioctl_upload_req_NV),
+	.ioctl_din(ioctl_din_NV),
 	.clk(clk_sys),
 	.paused(pause_cpu),
-	.autosave(status[27]),
-	.nvramsize(nvram_size),
+	.autosave(status[27] & NVRam),
 	.nvram_address(nvram_address),
 	.nvram_data_out(hs_data_out),
 	.ioctl_dout(ioctl_dout[7:0]),
-	.pause_cpu(hs_pause)
+	.pause_cpu(Pause_NV)
+);
+
+// Gorf and Wizard of Wor use High Score saving just to save the actual score data as it seems NVRAM was not used on these
+wire        hs_configured;
+wire        hs_write_enable_hs;
+wire [15:0] hs_address_o;
+wire [7:0]  hs_data_in_hs;
+
+hiscore #(
+	.HS_ADDRESSWIDTH(16),
+	.CFG_LENGTHWIDTH(2),
+	.HS_CONFIGINDEX(5),
+	.HS_DUMPINDEX(6)
+) hi (
+	.*,
+	.OSD_STATUS(OSD_STATUS & HighScore),
+	.ioctl_upload_req(ioctl_upload_req_HS),
+	.clk(clk_sys),
+	.paused(pause_cpu),
+	.autosave(status[27] & HighScore),
+	.ram_address(hs_address_o),
+	.data_from_ram(hs_data_out),
+	.data_to_ram(hs_data_in_hs),
+	.data_from_hps(ioctl_dout),
+	.data_to_hps(ioctl_din_HS),
+	.ram_write(hs_write_enable_hs),
+	.ram_intent_read(),
+	.ram_intent_write(),
+	.pause_cpu(Pause_HS),
+	.configured(hs_configured)
 );
 
 // Cabinet specific routines
