@@ -16,6 +16,7 @@ set_global_assignment -name VHDL_FILE rtl/ebases_control.vhd
 set_global_assignment -name VHDL_FILE rtl/wow_control.vhd
 set_global_assignment -name VHDL_FILE rtl/seawolf_gray_binary.vhd
 set_global_assignment -name VHDL_FILE rtl/freeplay.vhd
+set_global_assignment -name VERILOG_FILE rtl/hiscore.v
 set_global_assignment -name VERILOG_FILE rtl/nvram.v
 set_global_assignment -name VERILOG_FILE rtl/pause.v
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/seawolf_samples.sv

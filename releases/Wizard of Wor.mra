@@ -55,13 +55,13 @@
 		<part crc="35797f82" name="wow.x6"></part>
 		<part crc="ce404305" name="wow.x7"></part>
 		</rom>
-	<rom index="2"></rom>
-	<rom index="3">
+	<rom index="5">
 		<part>
-		F0 FF 0F 00 00 00 00 00
+		00 03 FF FF 00 FF 00 02 00 02 00 01 00 FF 02 00
+		00 00 D3 03 00 14 00 00 
 		</part>
 	</rom>
-	<nvram index="4" size="64"/>
+	<nvram index="6" size="20"/>
 
 	<remark></remark>
 
